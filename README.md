@@ -41,7 +41,7 @@ Benötigte Software:
 
 Installationsschritte:
 * `npm -i -g typescript`
-* `npm install`
+* `npm ci`
 * Datei ".env.example" nach ".env" kopieren und den Inhalt anpassen
 
 ### Ausführen
