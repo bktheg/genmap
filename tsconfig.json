@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+      "module": "NodeNext",
+      "esModuleInterop": false,
+      "target": "ESNext",
+      "moduleResolution": "nodenext",
+      "sourceMap": true,
+      "outDir": "dist",
+      "baseUrl": "src",
+      "paths": {
+          "*": [
+              "node_modules/*"
+          ],
+          "#src/*": ["*.js"],
+          "#services/*": ["services/*.js"],
+          "#kataster/*": ["services/map/kataster/*.js"],
+          "#utils*": ["services/utils*.js"]
+      },
+      "allowJs": false,
+      "lib": ["es2017"],
+      
+      "noImplicitAny":false,
+      "noImplicitReturns":true,
+      "noImplicitThis":true,
+      "strictBindCallApply":true,
+      "strictFunctionTypes":true,
+      "strictPropertyInitialization":false,
+      "strictNullChecks": false,
+      "resolveJsonModule": true
+  },
+  "include": [
+      "src/**/*",
+      "src/package.json"
+  ]
+}
