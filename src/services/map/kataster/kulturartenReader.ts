@@ -10,6 +10,7 @@ class Kulturart {
 }
 
 const KULTURARTEN = new Map<string,Kulturart>()
+const DISPLAYLABELS = new Map<string,string>()
 
 loadKulturarten()
 
@@ -27,6 +28,12 @@ export function lookupTaxierung(kulturart:string):MutterrolleTaxeKulturart|null 
         return null
     }
     return kulturartObj.taxiertAls;
+}
+
+export function lookupDisplayLabel(kulturart:string):string {
+    const label = DISPLAYLABELS.get(kulturart.trim().toLowerCase())
+
+    return label || kulturart
 }
 
 function loadKulturarten():void {
@@ -50,6 +57,7 @@ function loadKulturartenFromFile(path:string):void {
         
         const kartendarstellung = sheet.readString("kartendarstellung", i).trim()
         const taxiertAls = sheet.readString("taxiert als", i).trim()
+        const label = sheet.readString("anzeigetext", i).trim()
        
         if( KULTURARTEN.has(kulturart) ) {
            throw Error("ERROR: Kulturart doppelt vorhanden: "+kulturart)
@@ -59,6 +67,9 @@ function loadKulturartenFromFile(path:string):void {
         }
 
         KULTURARTEN.set(kulturart, new Kulturart(kulturart, mapKartendarstellung(kartendarstellung), mapTaxiertAls(taxiertAls)))
+        if( label ) {
+            DISPLAYLABELS.set(kulturart, label)
+        }
     }
 }
 

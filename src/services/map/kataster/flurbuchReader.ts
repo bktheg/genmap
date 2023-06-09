@@ -3,7 +3,7 @@ import * as fs from 'fs'
 import { AreaTyp } from '#kataster/parzellenReader';
 import * as gemeindeType from '#kataster/gemeindeType'
 import * as unitConversion from '#kataster/unitConversion'
-import { lookupKartendarstellung } from '#kataster/kulturartenReader';
+import { lookupKartendarstellung, lookupDisplayLabel } from '#kataster/kulturartenReader';
 import { consola } from 'consola';
 import * as XslxUtils from '#utils/xslxUtils'
 
@@ -226,7 +226,7 @@ function readParzelle(sheet:XLSX.WorkSheet, gemeinde:gemeindeType.GemeindeId, fl
 
     parzelle.owner = readStringCell(sheet, 'D', i);
     parzelle.lage = readStringCell(sheet, 'A', i);
-    parzelle.typPlain = art.replace("Ggarten", "G.Garten");
+    parzelle.typPlain = lookupDisplayLabel(art)
     parzelle.klasse = klasse ? `${klasse}` : null;
 
     parzelle.areaTaxable = readArea(sheet, 'F', 'G', 'H', i);
