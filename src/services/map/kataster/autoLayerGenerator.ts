@@ -266,7 +266,16 @@ export async function generateAutoLayer(gemeinde:gemeindeType.GemeindeId) {
             consola.warn("Überspringe Parzelle", p.id(), " Die Parzelle fehlt im Flurbuch")
             continue
         }
-        fs.writeFileSync(basePath+"/"+p.gemeinde.getId()+"/"+p.flur+"/"+p.nr+".json", JSON.stringify(p.export(), null, 4));
+
+
+        const filename = basePath+"/"+p.gemeinde.getId()+"/"+p.flur+"/"+p.nr+".json"
+        const json = JSON.stringify(p.export(), null, 4)
+
+        if( fs.existsSync(filename) && json == fs.readFileSync(filename).toString() ) {
+            continue
+        }
+
+        fs.writeFileSync(filename, json);
         counter++
     }
     consola.success(counter, "vorverarbeitete Parzellen geschrieben")
