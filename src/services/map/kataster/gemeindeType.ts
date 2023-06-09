@@ -151,7 +151,9 @@ export class GemeindeId {
         private quelleFlurbuch:string, 
         private quelleMutterrollen:string, 
         private quelleGueterverzeichnis:string, 
-        private alternateNames:string[]=[]) {
+        private alternateNames:string[]=[],
+        private origin:number[],
+        public vermessungsraster:number) {
     }
 
     getName(): string {
@@ -231,6 +233,14 @@ export class GemeindeId {
 
     setExportReinertrag(exportReinertrag:boolean):void {
         this.exportReinertrag = exportReinertrag;
+    }
+
+    getOrigin():number[] {
+        return this.origin != null ? this.origin : this.parent.getCoordinateSystem().origin;
+    }
+
+    getCoordinateSystem():CoordinateSystem {
+        return new CoordinateSystem(this.getOrigin(), this.parent.getCoordinateSystem().rotation)
     }
 }
 
@@ -410,11 +420,14 @@ function loadGemeindenSheet(workbook:XLSX.WorkBook):void {
                 altNames.push(split[i].trim());
             }
         }
-        const quelleVermessung = sheetGemeinden.readString('Archiv Vermessung',i);
-        const quelleFlurbuch = sheetGemeinden.readString('Archiv FB',i);
-        const quelleMutterrollen = sheetGemeinden.readString('Archiv Mutterrollen',i);
-        const quelleGueterverzeichnis = sheetGemeinden.readString('Archiv Güterverzeichnis',i);
-        const exportReinertrag = sheetGemeinden.readString('Export Reinertrag',i).toLowerCase() == 'x';
+        const quelleVermessung = sheetGemeinden.readString('Archiv Vermessung',i)
+        const quelleFlurbuch = sheetGemeinden.readString('Archiv FB',i)
+        const quelleMutterrollen = sheetGemeinden.readString('Archiv Mutterrollen',i)
+        const quelleGueterverzeichnis = sheetGemeinden.readString('Archiv Güterverzeichnis',i)
+        const exportReinertrag = sheetGemeinden.readString('Export Reinertrag',i).toLowerCase() == 'x'
+        const npX = sheetGemeinden.readOptionalNumber('NP X',i)
+        const npY = sheetGemeinden.readOptionalNumber('NP Y',i)
+        const vermessungsraster = sheetGemeinden.readOptionalNumber('Vermessungsraster',i)
 
         if( GEMEINDEN.find(g => g.getId() == id) ) {
             throw Error("ERROR: Gemeinde-ID doppelt vergeben: "+id)
@@ -424,7 +437,17 @@ function loadGemeindenSheet(workbook:XLSX.WorkBook):void {
         if( !bgmstr ) {
             throw Error("ERROR: Gemeinde verweist auf ungültige Buergermeisterei: "+id)
         }
-        const gemeinde = new GemeindeId(id, name, bgmstr, quelleVermessung, quelleFlurbuch, quelleMutterrollen, quelleGueterverzeichnis, altNames);
+        const gemeinde = new GemeindeId(
+            id, 
+            name, 
+            bgmstr, 
+            quelleVermessung, 
+            quelleFlurbuch, 
+            quelleMutterrollen, 
+            quelleGueterverzeichnis, 
+            altNames, 
+            npX != null && npY != null ? [npX, npY] : null,
+            vermessungsraster);
         bgmstr.addGemeinde(gemeinde);
         gemeinde.setExportReinertrag(exportReinertrag);
         GEMEINDEN.push(gemeinde);

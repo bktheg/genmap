@@ -86,6 +86,12 @@ export async function readNetPoints():Promise<NetPoints> {
         }
     }
 
+    for( const gemeinde of gemeindeType.GEMEINDEN ) {
+        if( gemeinde.vermessungsraster ) {
+            createMeridianNetFor(result, 'gemeinde-'+gemeinde.getId(), gemeinde.getCoordinateSystem(), gemeinde.vermessungsraster);
+        }
+    }
+
     return result;
 }
 
@@ -244,7 +250,7 @@ function calculatePointDescrList(stationen:StationDescriptor[], netPoints:NetPoi
         const next = i < stationen.length-1 ? stationen[i+1] : stationen[0];
 
         if( next.coordX != null && next.coordY != null ) {
-            const proj = localToProj(next.coordX, next.coordY, gemeindeId.getParent().getCoordinateSystem());
+            const proj = localToProj(next.coordX, next.coordY, gemeindeId.getCoordinateSystem());
             result.push(new AbsolutePointDescriptor(PointType.NET, next.id, null, proj[0], proj[1]));
             continue;
         }

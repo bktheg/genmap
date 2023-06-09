@@ -46,11 +46,35 @@ export class TableLoader {
         }
         return '';
     }
+
+    readOptionalString(colName:string, row:number):string {
+        const col = this.colMap.get(colName.toLowerCase());
+        if( !col ) {
+            return ''
+        }
+        const cell = this.sheet[col+row];
+        if( cell ) {
+            return cell.v.toString();
+        }
+        return '';
+    }
     
     readNumber(colName:string, row:number):number {
         const col = this.colMap.get(colName.toLowerCase());
         if( !col ) {
             throw new Error("Unknown column name "+colName);
+        }
+        const cell = this.sheet[col+row];
+        if( cell ) {
+            return cell.v;
+        }
+        return null;
+    }
+
+    readOptionalNumber(colName:string, row:number):number {
+        const col = this.colMap.get(colName.toLowerCase());
+        if( !col ) {
+            return null
         }
         const cell = this.sheet[col+row];
         if( cell ) {
