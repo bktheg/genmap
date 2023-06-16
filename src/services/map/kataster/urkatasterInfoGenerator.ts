@@ -119,7 +119,7 @@ class MutterrolleEntryAlternative {
 class MutterrolleEntry {
     public alteratives:Map<string,MutterrolleEntryAlternative> = new Map();
 
-    constructor(public gemeinde:gemeindeType.GemeindeId, public mutterrolle:string, area:DbArea) {
+    constructor(public gemeinde:gemeindeType.GemeindeId, public mutterrolle:string) {
     }
 
     addAlternativeFromFlurbuch(entry:flurbuchReader.Parzelle) {
@@ -159,31 +159,32 @@ class MutterrolleEntry {
     }
 }
 
-function createOwnerMap(currentAreas:Map<string,DbArea>):Map<string,MutterrolleEntry> {
+function createOwnerMap(gemeinde:gemeindeType.GemeindeId):Map<string,MutterrolleEntry> {
     const ownerMap = new Map<string,MutterrolleEntry>();
      
-    for( const area of currentAreas.values() ) {
-        if( !area.nr || area.nr == "none" ) {
+    for( const flur of gemeinde.getFlure() ) {
+        if( !flurbuchReader.hasFlurbuch(gemeinde, flur.id) ) {
             continue;
         }
-        const entry = flurbuchReader.loadEntry(area.gemeinde, area.flur, area.nr);
-        if( !entry ) {
-            continue;
-        }
+        for( const parzelle of flurbuchReader.loadAllEntries(gemeinde, flur.id).parzellen.values() ) {
+            if( !parzelle.nr || parzelle.nr == "none" ) {
+                continue;
+            }
+            
+            if( parzelle.mutterrolle ) {
+                const mutterrolleId = gemeinde.getId()+"-"+parzelle.mutterrolle;
 
-        if( entry.mutterrolle ) {
-            const mutterrolleId = entry.gemeinde.getId()+"-"+entry.mutterrolle;
+                if( parzelle.owner ) {
+                    if( ownerMap.has(mutterrolleId) ) {
+                        const refOwner = ownerMap.get(mutterrolleId);
+                        refOwner.addAlternativeFromFlurbuch(parzelle);
+                    }
+                    else {
+                        const newOwner = new MutterrolleEntry(gemeinde, parzelle.mutterrolle)
+                        newOwner.addAlternativeFromFlurbuch(parzelle);
+                        ownerMap.set(mutterrolleId, newOwner);
 
-            if( entry.owner ) {
-                if( ownerMap.has(mutterrolleId) ) {
-                    const refOwner = ownerMap.get(mutterrolleId);
-                    refOwner.addAlternativeFromFlurbuch(entry);
-                }
-                else {
-                    const newOwner = new MutterrolleEntry(entry.gemeinde, entry.mutterrolle, area)
-                    newOwner.addAlternativeFromFlurbuch(entry);
-                    ownerMap.set(mutterrolleId, newOwner);
-
+                    }
                 }
             }
         }
@@ -204,7 +205,7 @@ export async function generateUrkatasterInfo(gemeinde:gemeindeType.GemeindeId) {
             masterOwner.set(entry[0], entry[1].getFullName());
         }
     }
-    const ownerMap = createOwnerMap(currentAreas);
+    const ownerMap = createOwnerMap(gemeinde);
     const warnings = new Set<string>();
 
     consola.debug(ownerMap.size, "Eigentümer ermittelt")
