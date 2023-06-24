@@ -151,7 +151,7 @@ function validateSizeAgainstReinertrag(gemeinde:gemeindeType.GemeindeId):Validat
                 }
                 const klasse = parseAndValidateKlasse(result, subrow)
 
-                if( subrow.reinertrag.isZero() || !taxen ) {
+                if( subrow.reinertrag == null || subrow.reinertrag.isZero() || !taxen ) {
                     continue
                 }
 

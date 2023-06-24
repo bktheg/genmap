@@ -261,7 +261,7 @@ function readMoney(sheet:XLSX.WorkSheet, rowM:string, rowR:string, rowF:string, 
     const valueG = readStringCell(sheet, rowR, col);
     const valueP = readStringCell(sheet, rowF, col);
 
-    if( !valueT && !valueG && !valueP && valueT != 0 && valueG != 0 && valueP != 0 ) {
+    if( !valueT && !valueG && !valueP && valueT != '0' && valueG != '0' && valueP != '0' ) {
         return null;
     }
 
