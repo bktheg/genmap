@@ -273,7 +273,16 @@ export async function generateMap(gemeinde:gemeindeType.GemeindeId, writeAllPoin
     await mapWriter.writeFluren(calculatedFluren);
     consola.success(calculatedFluren.length, "Fluren geschrieben")
     
-    await generateUrkatasterInfo(gemeinde);
+    if( gemeinde != null ) {
+        await generateUrkatasterInfo(gemeinde);
+    }
+    else {
+        for( const g of gemeindeType.GEMEINDEN ) {
+            if( g.isPartsPlanned() ) {
+                await generateUrkatasterInfo(g)
+            }
+        }
+    }
 
     const reader = createRawDataReader()
     try {

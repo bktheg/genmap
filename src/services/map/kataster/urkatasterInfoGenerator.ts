@@ -28,19 +28,10 @@ class DbArea {
 }
 
 async function readDbAreas(gemeinde:gemeindeType.GemeindeId):Promise<Map<string,DbArea>> {
-    let areas;
-    if( gemeinde == null ) {
-        areas = await database.getClient().query({
-            text: `SELECT a.gemeinde as gemeinde,a.flur as flur,a.nr as no FROM kataster_gen_areas a WHERE yearfrom<=1825 AND yeartill>=1825 AND typ=0`, 
-            values: []
-        })
-    }
-    else {
-        areas = await database.getClient().query({
-            text: `SELECT a.gemeinde as gemeinde,a.flur as flur,a.nr as no FROM kataster_gen_areas a WHERE yearfrom<=1825 AND yeartill>=1825 AND typ=0 AND gemeinde=$1`, 
-            values: [gemeinde.getId()]
-        })
-    }
+    let areas = await database.getClient().query({
+        text: `SELECT a.gemeinde as gemeinde,a.flur as flur,a.nr as no FROM kataster_gen_areas a WHERE yearfrom<=1825 AND yeartill>=1825 AND typ=0 AND gemeinde=$1`, 
+        values: [gemeinde.getId()]
+    })
 
     const map = new Map<string,DbArea>();
     for( const r of areas.rows ) {
@@ -56,6 +47,9 @@ async function writeAreasToDB(areas:Map<string,DbArea>) {
 }
 
 async function writeInfo(areas:DbArea[]) {
+    if( areas.length <= 0 ) {
+        return
+    }
     const MAX = 4096;
     if( areas.length > MAX ) {
         for( let i=0; i<areas.length; i+=MAX ) {
@@ -218,7 +212,7 @@ export async function generateUrkatasterInfo(gemeinde:gemeindeType.GemeindeId) {
         if( !entry ) {
             continue;
         }
-        if( gemeinde != null && entry.gemeinde.getId() != gemeinde.getId() ) {
+        if( entry.gemeinde.getId() != gemeinde.getId() ) {
             continue;
         }
 
