@@ -145,7 +145,8 @@ function validateSizeAgainstReinertrag(gemeinde:gemeindeType.GemeindeId):Validat
         
         const entries = flurbuchReader.loadAllEntries(gemeinde, flur.getId());
         for( const parzelle of entries.parzellen.values() ) {
-            for( const subrow of parzelle.subrows.length ? parzelle.subrows : [parzelle] ) {
+            const checkSubrows = parzelle.subrows.length && parzelle.subrows.every(r => r.reinertrag != null)
+            for( const subrow of checkSubrows ? parzelle.subrows : [parzelle] ) {
                 if( !subrow.klasse ) {
                     continue;
                 }
@@ -205,7 +206,7 @@ function parseAndValidateKlasse(result:ValidationResult, parzelle:flurbuchReader
         klassenMap.set(klasse, parzelle.areaNonTaxable.add(parzelle.areaTaxable))
     }
     else {
-        const regex = /^([0-9/\.]+[mrf]\=[1-5])([\s]+[0-9/\.]+[mrf]\=[1-5])?([\s]+[0-9/\.]+[mrf]\=[1-5])?([\s]+[0-9/\.]+[mrf]\=[1-5])?\srest\s([1-5])$/
+        const regex = /^([0-9/\.]+[mrf]\=[1-5])([\s]+[0-9/\.]+[mrf]\=[1-5])?([\s]+[0-9/\.]+[mrf]\=[1-5])?([\s]+[0-9/\.]+[mrf]\=[1-5])?(?:\srest\s([1-5]))?$/
         const matches = parzelle.klasse.match(regex)
         if( !matches ) {
             result.logMessage(parzelle.gemeinde, parzelle.flur, parzelle.nr, 'Ungültige Klasse: '+parzelle.klasse);

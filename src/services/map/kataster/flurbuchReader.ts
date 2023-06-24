@@ -159,7 +159,7 @@ function loadFile(gemeinde:gemeindeType.GemeindeId, flur:number):Flur {
                     }
                 }
                 lastParzelle.typPlain += ", "+subrow.typPlain;
-                lastParzelle.klasse = (lastParzelle.klasse || '')+ "; "+(subrow.klasse || '');
+                lastParzelle.klasse = lastParzelle.subrows.map(r => r.klasse?.length == 1 ? r.areaTaxable.add(r.areaNonTaxable).toString()+"m="+r.klasse : r.klasse).join(' ');
             }
             continue;
         }
