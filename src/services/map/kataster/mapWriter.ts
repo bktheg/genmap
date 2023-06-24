@@ -557,9 +557,9 @@ export async function writeBuildings(buildings:CalculatedBuilding[]) {
     if( buildings.length == 0 ) {
         return;
     }
-    if( buildings.length > 8192 ) {
-        for( let i=0; i<buildings.length; i+=8192 ) {
-            await writeBuildings(buildings.slice(i, i+8192));
+    if( buildings.length > 4096 ) {
+        for( let i=0; i<buildings.length; i+=4096 ) {
+            await writeBuildings(buildings.slice(i, i+4096));
         }
         return;
     }
