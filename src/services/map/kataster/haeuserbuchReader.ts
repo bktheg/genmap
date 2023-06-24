@@ -77,16 +77,16 @@ function load(path:string):Street[] {
    
     let result:Street[] = []
     let currentStreet = null;
-    const sheet = workbook.Sheets['Blatt1'];
+    const sheet = new XslxUtils.TableLoader(workbook.Sheets['Blatt1']);
     let i = 1;
     let skipped = 0;
     let building:Building = null;
     while(true) {
         i++;
-        const streetCell = sheet['A'+i];
-        const hnrCell = sheet['B'+i];
-        const infoCell = sheet['E'+i];
-        if( !streetCell && !hnrCell && !infoCell ) {
+        const streetName = sheet.readString('Straße', i)
+        const hnrCell = sheet.readString('Nummer', i)
+        const infotext = sheet.readString('Information', i)
+        if( !streetName && !hnrCell && !infotext ) {
             if( skipped++ > 5 ) {
                 break;
             }
@@ -94,34 +94,32 @@ function load(path:string):Street[] {
         }
         skipped = 0;
 
-        const streetName = readCell(sheet, 'A', i);
-        const infotext = readCell(sheet, 'E', i);
 
-        if( streetCell && (currentStreet == null || currentStreet.name != streetName)) {
+        if( streetName && (currentStreet == null || currentStreet.name != streetName)) {
             currentStreet = new Street();
             currentStreet.name = streetName;
             result.push(currentStreet);
         }
         
-        if( streetCell && hnrCell ) {
+        if( streetName && hnrCell ) {
             building = new Building();
             building.street = streetName;
-            building.number =  readCell(sheet, 'B', i);
-            building.oldNumber = readCell(sheet, 'C', i);
+            building.number =  hnrCell;
+            building.oldNumber = sheet.readString('Alte Nummer', i)
             building.infos = new Array();
             building.yearInfos = new Array();
             currentStreet.buildings.push(building);
         }
 
-        if( infoCell && streetCell && !hnrCell ) {
+        if( infotext && streetName && !hnrCell ) {
             const info:StreetInfo = {
                 text: infotext
             };
 
             currentStreet.infos.push(info);
         }
-        else if( infoCell ) {
-            let year = readCell(sheet, 'D', i);
+        else if( infotext ) {
+            let year = sheet.readString('Jahr', i)
             if( !year || year.toLowerCase().startsWith("anm") ) {
                 try {
                     const yearInt = parseInt(infotext.substr(0,5).trim());
@@ -199,17 +197,6 @@ function fillUnkownDates(geb:Building) {
         }
     } while(unknown && changed)
 
-}
-
-function readCell(sheet:XLSX.WorkSheet, row:string, col:number):string {
-    const cell = sheet[row+col];
-    if( cell ) {
-        const val = cell.v;
-        if( val ) {
-            return val.toString();
-        }
-    }
-    return '';
 }
 
 function determineInfoType(info:string):BuildingInfoType {
