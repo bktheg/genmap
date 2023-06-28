@@ -384,7 +384,12 @@ function mapInfo(info:infoReader.Info):InfoExport {
     else if( info instanceof infoReader.HaeuserbuchInfo ) {
         return {
             t:info.type,
-            a:{i:info.infos.map(i => {return {e:i.type, t:i.text}}), y:info.yearInfos.map(i => {return {y:i.year.getText(), t:i.text}}),a:info.address}
+            a:{
+                i:info.infos.map(i => {return {e:i.type, t:i.text}}), 
+                o:info.ownerList?.map(i => {return {y:i.year.getText(), t:i.text}}),
+                y:info.additionalInfos?.map(i => {return {y:i.year?.getText(), t:i.text}}),
+                a:info.address
+            }
         }
     }
     return null;

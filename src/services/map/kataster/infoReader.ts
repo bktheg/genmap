@@ -84,7 +84,13 @@ export class CommonInfo extends Info {
 }
 
 export class HaeuserbuchInfo extends Info {
-    constructor(type:string, matcher:InfoMatcher, public infos:haeuserbuchLoader.BuildingInfo[], public yearInfos:haeuserbuchLoader.BuildingYearInfo[], public address:string) {
+    constructor(
+        type:string, 
+        matcher:InfoMatcher, 
+        public infos:haeuserbuchLoader.BuildingInfo[], 
+        public ownerList:haeuserbuchLoader.BuildingYearInfo[], 
+        public additionalInfos:haeuserbuchLoader.BuildingYearInfo[], 
+        public address:string) {
         super(type, matcher);
     }
 }
@@ -156,7 +162,16 @@ async function readHaeuserbuch(gemeinde:gemeindeType.GemeindeId):Promise<Info[]>
                 continue;
             }
            
-            result.push(new HaeuserbuchInfo('haeuserbuch', infoMatcher, building.infos, building.yearInfos, building.street+' '+building.number))
+            if( building.infos.length > 0 || building.ownerList.length > 0 ) {
+                result.push(new HaeuserbuchInfo(
+                    'haeuserbuch', 
+                    infoMatcher,
+                    building.infos, 
+                    building.ownerList, 
+                    building.additionalInfos.length > 0 ? building.additionalInfos : null,
+                    `Hausnummer ${building.oldNumber} (${building.street} ${building.number})`
+                ))
+            }
         }
     }
     return result
@@ -200,13 +215,23 @@ function createMatcherByHaeuserbuchFlur(gemeinde:gemeindeType.GemeindeId, buildi
     if( !flur || !flur.startsWith('flur ' ) ) {
         return null;
     }
+    const flurParts = flur.split(',')
     const regex = /flur ([0-9]+) nr. ([0-9]+[a-z/]?)/
-    const matches = flur.match(regex);
+    const matches = flurParts[0].trim().match(regex);
     if( !matches || matches.length < 2 || matches[2].endsWith("/") ) {
         return null;
     }
-    if( building.infos.length == 0 && building.yearInfos.length == 0 ) {
+    if( building.infos.length == 0 && building.ownerList.length == 0 ) {
         return null;
+    }
+
+    const numberMatcher = new NumberRangeMatcher(matches[2])
+    for(let i=1; i < flurParts.length; i++) {
+        const part = flurParts[i].trim()
+        const nr = parseInt(part)
+        if( `${nr}` === part ) {
+            numberMatcher.addPattern(part)
+        }
     }
 
     return new InfoMatcher(
@@ -214,7 +239,7 @@ function createMatcherByHaeuserbuchFlur(gemeinde:gemeindeType.GemeindeId, buildi
         gemeinde.getParent(),
         gemeinde,
         parseInt(matches[1]),
-        new NumberRangeMatcher(matches[2]));
+        numberMatcher);
 }
 
 function readInfoFromPath(result:Info[], path:string) {

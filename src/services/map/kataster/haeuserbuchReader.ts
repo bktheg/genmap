@@ -7,12 +7,13 @@ import { consola } from 'consola';
 const katasterPath = process.env.KATASTER_PATH
 
 export class Building {
-    street:string;
-    number:string; 
-    oldNumber:string;
-    infos: Array<BuildingInfo>;
-    flur:BuildingInfo;
-    yearInfos: Array<BuildingYearInfo>;
+    street:string
+    number:string
+    oldNumber:string
+    infos: BuildingInfo[] = []
+    flur:BuildingInfo
+    ownerList: BuildingYearInfo[] = []
+    additionalInfos: BuildingYearInfo[] = []
 }
 
 export enum BuildingInfoType {
@@ -81,6 +82,7 @@ function load(path:string):Street[] {
     let i = 1;
     let skipped = 0;
     let building:Building = null;
+    let anmerkung = false
     while(true) {
         i++;
         const streetName = sheet.readString('Straße', i)
@@ -93,7 +95,7 @@ function load(path:string):Street[] {
             continue;
         }
         skipped = 0;
-
+        anmerkung = false
 
         if( streetName && (currentStreet == null || currentStreet.name != streetName)) {
             currentStreet = new Street();
@@ -106,8 +108,6 @@ function load(path:string):Street[] {
             building.street = streetName;
             building.number =  hnrCell;
             building.oldNumber = sheet.readString('Alte Nummer', i)
-            building.infos = new Array();
-            building.yearInfos = new Array();
             currentStreet.buildings.push(building);
         }
 
@@ -120,17 +120,30 @@ function load(path:string):Street[] {
         }
         else if( infotext ) {
             let year = sheet.readString('Jahr', i)
-            if( !year || year.toLowerCase().startsWith("anm") ) {
+            if( year.toLowerCase().startsWith('anm') ) {
+                anmerkung = true
+            }         
+
+            if( anmerkung ) {
+                let parsedYear:zeit.Zeit
                 try {
                     const yearInt = parseInt(infotext.substr(0,5).trim());
-                    year = yearInt > 1000 && yearInt < 2000 ? ""+yearInt : year;
+                    if( yearInt > 1000 && yearInt < 2000 ) {
+                        parsedYear = zeit.parse(`${yearInt}`)
+                    }
                 }
                 catch(ex) {
                     // Ignore, no date
                 }
-            }
 
-            if( !year || year.toLowerCase().startsWith("anm") ) {
+                const info:BuildingYearInfo = {
+                    year: parsedYear,
+                    text: infotext
+                };
+
+                building.additionalInfos.push(info);
+            }
+            else if( !year ) {
                 const info:BuildingInfo = {
                     type: determineInfoType(infotext),
                     text: infotext
@@ -152,7 +165,7 @@ function load(path:string):Street[] {
                     text: infotext
                 };
 
-                building.yearInfos.push(info);
+                building.ownerList.push(info);
             }
         }
     }
@@ -161,7 +174,7 @@ function load(path:string):Street[] {
     let partialCounter = 0;
     for( let street of result ) {
         for( let geb of street.buildings ) {
-            if( geb.yearInfos.length == 0 ) {
+            if( geb.ownerList.length == 0 ) {
                 partialCounter++;
             }
             else {
@@ -182,14 +195,14 @@ function fillUnkownDates(geb:Building) {
     do {
         unknown = false;
         changed = false;
-        for( let i=0; i < geb.yearInfos.length; i++ ) {
-            const y = geb.yearInfos[i];
+        for( let i=0; i < geb.ownerList.length; i++ ) {
+            const y = geb.ownerList[i];
             if( y.year.isUnknown() ) {
-                if( i > 0 && i < geb.yearInfos.length-1 ) {
-                    y.year = zeit.zeitraum(geb.yearInfos[i-1].year, geb.yearInfos[i+1].year, y.year.getText());
+                if( i > 0 && i < geb.ownerList.length-1 ) {
+                    y.year = zeit.zeitraum(geb.ownerList[i-1].year, geb.ownerList[i+1].year, y.year.getText());
                 }
                 else if( i == 0 ) {
-                    y.year = zeit.zeitpunkt(geb.yearInfos[i+1].year, y.year.getText());
+                    y.year = zeit.zeitpunkt(geb.ownerList[i+1].year, y.year.getText());
                 }
                 changed = changed || !y.year.isUnknown();
             }
