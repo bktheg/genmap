@@ -311,6 +311,8 @@ function mapKulturartTaxe(kulturart:string):MutterrolleTaxeKulturart {
     case 'teiche':
         return MutterrolleTaxeKulturart.Teich;
     case 'mergelgrube':
+    case 'mergelgruben':
+    case 'stein- und mergelgruben':
     case 'steinkuhle':
     case 'steinkuhlen':
     case 'steinbruch':
