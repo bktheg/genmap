@@ -5,6 +5,7 @@ import * as mutterrolle from '#kataster/mutterrolle'
 import * as gemeindeType from '#kataster/gemeindeType'
 import * as database from '#utils/database'
 import * as infoReader from '#kataster/infoReader'
+import * as haeuserbuchReader from '#kataster/haeuserbuchReader'
 import { consola } from 'consola'
 
 const katasterPath = process.env.KATASTER_PATH
@@ -385,14 +386,90 @@ function mapInfo(info:infoReader.Info):InfoExport {
         return {
             t:info.type,
             a:{
-                i:info.infos.map(i => {return {e:i.type, t:i.text}}), 
-                o:info.ownerList?.map(i => {return {y:i.year.getText(), t:i.text}}),
-                y:info.additionalInfos?.map(i => {return {y:i.year?.getText(), t:i.text}}),
-                a:info.address
+                g:info.gemeinde.getId(),
+                x:info.id
             }
         }
     }
     return null;
+}
+
+type HaeuserbuchExport = {
+    b:HaeuserbuchBuildingExport[], // buildings
+    q:string, // quelle
+    u:string // url
+}
+
+type HaeuserbuchInfoExport = {
+    t:number,
+    x:string
+}
+
+type HaeuserbuchYearInfoExport = {
+    y:string,
+    x:string
+}
+
+type HaeuserbuchBuildingExport = {
+    i:string, // id
+    n:string, // number
+    o:string, // oldNumber
+    s:string, // street
+    f:HaeuserbuchInfoExport, // flur
+    b:HaeuserbuchInfoExport[], // infos
+    e:HaeuserbuchYearInfoExport[], // ownerList
+    a:HaeuserbuchYearInfoExport[], // additionalInfos
+}
+
+export async function writeMetadataHaeuserbuch(gemeinde:gemeindeType.GemeindeId) {
+    const hb = haeuserbuchReader.loadHaeuserbuchByGemeinde(gemeinde)
+    if( hb == null || hb.length == 0 ) {
+        return
+    }
+    
+    const out = {
+        b:[],
+        q:null,
+        u:null
+    } as HaeuserbuchExport;
+
+    if( gemeinde.getId() == gemeindeType.DORTMUND.getId() ) {
+        // Hardcoded for now. Will be refacted once a second 'Häuserbuch' is being integrated
+        out.q = 'Dortmunder Häuserbuch, Robert von den Berken, 1927'
+        out.u = 'https://nbn-resolving.org/urn:nbn:de:hbz:6:1-8118'
+    }
+
+    for( const street of hb ) {
+        for(const building of street.buildings) {
+            
+            out.b.push({
+                i:building.id,
+                n:building.number,
+                o:building.oldNumber,
+                s:building.street,
+                f:mapHaeuserbuchInfo(building.flur),
+                b:building.infos.map(i => mapHaeuserbuchInfo(i)),
+                e:building.ownerList.map(i => mapHaeuserbuchYearInfo(i)),
+                a:building.additionalInfos.map(i => mapHaeuserbuchYearInfo(i))
+            } as HaeuserbuchBuildingExport)
+        }
+    }
+   
+    fs.writeFileSync(katasterPath+"/out_metadata/haeuserbuch_"+gemeinde.getId()+".json", JSON.stringify(out, (k, v) => v != null ? v : undefined, 0));
+}
+
+function mapHaeuserbuchInfo(info:haeuserbuchReader.BuildingInfo):HaeuserbuchInfoExport {
+    if( !info ) {
+        return null
+    }
+    return {t:info.type, x:info.text}
+}
+
+function mapHaeuserbuchYearInfo(info:haeuserbuchReader.BuildingYearInfo):HaeuserbuchYearInfoExport {
+    if( !info ) {
+        return null
+    }
+    return {y:info.year?.getText(), x:info.text}
 }
 
 type AllParzellenExport = {

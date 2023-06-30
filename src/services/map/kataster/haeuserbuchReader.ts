@@ -7,6 +7,7 @@ import { consola } from 'consola';
 const katasterPath = process.env.KATASTER_PATH
 
 export class Building {
+    id:string
     street:string
     number:string
     oldNumber:string
@@ -95,8 +96,7 @@ function load(path:string):Street[] {
             continue;
         }
         skipped = 0;
-        anmerkung = false
-
+        
         if( streetName && (currentStreet == null || currentStreet.name != streetName)) {
             currentStreet = new Street();
             currentStreet.name = streetName;
@@ -105,10 +105,13 @@ function load(path:string):Street[] {
         
         if( streetName && hnrCell ) {
             building = new Building();
+            building.id = `${i}`
             building.street = streetName;
             building.number =  hnrCell;
             building.oldNumber = sheet.readString('Alte Nummer', i)
             currentStreet.buildings.push(building);
+            
+            anmerkung = false
         }
 
         if( infotext && streetName && !hnrCell ) {

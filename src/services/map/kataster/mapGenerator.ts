@@ -186,6 +186,13 @@ export async function generateMetadata() {
         }
     }
 
+    consola.start("Schreibe Häuserbücher pro Gemeinde (JSON)");
+    for( const gemeinde of gemeindeType.GEMEINDEN ) {
+        if( gemeinde.isPartsDone() ) {
+            await metadataJsonWriter.writeMetadataHaeuserbuch(gemeinde)
+        }
+    }
+
     const allParzellen = []
     consola.start("Schreibe Parzellen pro Gemeinde (JSON)");
     for( const gemeinde of gemeindeType.GEMEINDEN ) {

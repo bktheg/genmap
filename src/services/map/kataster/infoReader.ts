@@ -86,7 +86,9 @@ export class CommonInfo extends Info {
 export class HaeuserbuchInfo extends Info {
     constructor(
         type:string, 
-        matcher:InfoMatcher, 
+        matcher:InfoMatcher,
+        public gemeinde:gemeindeType.GemeindeId,
+        public id:string,
         public infos:haeuserbuchLoader.BuildingInfo[], 
         public ownerList:haeuserbuchLoader.BuildingYearInfo[], 
         public additionalInfos:haeuserbuchLoader.BuildingYearInfo[], 
@@ -162,10 +164,12 @@ async function readHaeuserbuch(gemeinde:gemeindeType.GemeindeId):Promise<Info[]>
                 continue;
             }
            
-            if( building.infos.length > 0 || building.ownerList.length > 0 ) {
+            if( building.infos.length > 0 || building.ownerList.length > 0 || building.additionalInfos.length > 0 ) {
                 result.push(new HaeuserbuchInfo(
                     'haeuserbuch', 
                     infoMatcher,
+                    gemeinde,
+                    building.id,
                     building.infos, 
                     building.ownerList, 
                     building.additionalInfos.length > 0 ? building.additionalInfos : null,
@@ -187,6 +191,7 @@ function createMatcherByHaeuserbuchHnr(gemeinde:gemeindeType.GemeindeId, buildin
     hnr = mapGenerator.optimizeHnr(hnr);
 
     const hnrParts = hnr.split(',').map(p => p.trim());
+    let matcher:InfoMatcher = null
 
     for( const part of hnrParts ) {
         if( part.startsWith('in ')) {
@@ -198,16 +203,23 @@ function createMatcherByHaeuserbuchHnr(gemeinde:gemeindeType.GemeindeId, buildin
             continue;
         }
 
-        return new InfoMatcher(
-            gemeinde.getParent().getKreis(),
-            gemeinde.getParent(),
-            gemeinde,
-            parzelle[0],
-            new NumberRangeMatcher(parzelle[1]));
-
-        // TODO: Weitere matches moeglich, tw. mehrere HNR im Haeuserbuch
+        if( matcher == null ) {
+            matcher = new InfoMatcher(
+                gemeinde.getParent().getKreis(),
+                gemeinde.getParent(),
+                gemeinde,
+                parzelle[0],
+                new NumberRangeMatcher(parzelle[1]));
+        }
+        else if( matcher.flur == parzelle[0] ) {
+            matcher.parzellen.addPattern(parzelle[1])
+        }
+        else {
+            // TODO: Weitere matches moeglich, tw. mehrere HNR im Haeuserbuch
+            consola.warn("Konnte Hausnummer aus Flurbuch nicht im Matcher registrieren, mehrere Fluren:", part)
+        }
     }
-    return null;
+    return matcher
 }
 
 function createMatcherByHaeuserbuchFlur(gemeinde:gemeindeType.GemeindeId, building:haeuserbuchLoader.Building):InfoMatcher|null {
@@ -215,13 +227,13 @@ function createMatcherByHaeuserbuchFlur(gemeinde:gemeindeType.GemeindeId, buildi
     if( !flur || !flur.startsWith('flur ' ) ) {
         return null;
     }
-    const flurParts = flur.split(',')
+    const flurParts = flur.split(' und ').join(',').split(' u. ').join(',').split(',')
     const regex = /flur ([0-9]+) nr. ([0-9]+[a-z/]?)/
     const matches = flurParts[0].trim().match(regex);
     if( !matches || matches.length < 2 || matches[2].endsWith("/") ) {
         return null;
     }
-    if( building.infos.length == 0 && building.ownerList.length == 0 ) {
+    if( building.infos.length == 0 && building.ownerList.length == 0 && building.additionalInfos.length == 0 ) {
         return null;
     }
 
