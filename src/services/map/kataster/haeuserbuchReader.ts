@@ -25,37 +25,51 @@ export enum BuildingInfoType {
     Unbekannt
 }
 
-export type BuildingInfo = {
-    type:BuildingInfoType,
-    text:string
+export class Info {
+    constructor(public text:string, public sources:string[]) {}
 }
 
-export type BuildingYearInfo = {
-    year:zeit.Zeit,
-    text:string
+export class BuildingInfo extends Info {
+    constructor(public type:BuildingInfoType, text:string, sources:string[]) {
+        super(text, sources)
+    }
+}
+
+export class BuildingYearInfo extends Info {
+    constructor(public year:zeit.Zeit, public text:string, public sources:string[]) {
+        super(text, sources)
+    }
 }
 
 export class Street {
-    name:string;
-    buildings:Array<Building> = new Array();
-    infos:Array<StreetInfo> = new Array();
+    name:string
+    buildings:Building[] = []
+    infos:Info[] = []
 }
 
-export type StreetInfo = {
-    text:string
+
+export class Source {
+    constructor(public id:string, public signatureOld:string, public signatureNew:string, public archive:string, public name:string) {}
 }
 
-let LOADED = null as null|Map<GemeindeId,Street[]>
+export class Haeuserbuch {
+    public streets:Street[] = []
+    public sources:Map<string,Source> = new Map()
 
-export function loadHaeuserbuchByGemeinde(gemeinde:GemeindeId): Street[] {
+    constructor() {}
+}
+
+let LOADED = null as null|Map<GemeindeId,Haeuserbuch>
+
+export function loadHaeuserbuchByGemeinde(gemeinde:GemeindeId): Haeuserbuch {
     if( !LOADED ) {
         LOADED = loadAll();
     }
     return LOADED.get(gemeinde)
 }
 
-function loadAll():Map<GemeindeId,Street[]> {
-    const result = new Map<GemeindeId,Street[]>()
+function loadAll():Map<GemeindeId,Haeuserbuch> {
+    const result = new Map<GemeindeId,Haeuserbuch>()
 
     XslxUtils.loadExcelsInPath(`${katasterPath}/häuserbücher`, (path,file) => {
         let gemeinde = file.substring(0, file.indexOf("."));
@@ -74,12 +88,67 @@ function loadAll():Map<GemeindeId,Street[]> {
     return result
 }
 
-function load(path:string):Street[] {
+function load(path:string):Haeuserbuch {
     const workbook = XLSX.readFile(path);
    
-    let result:Street[] = []
+    let result = new Haeuserbuch()
+    const sheet = new XslxUtils.TableLoader(workbook.Sheets['Blatt1'])
+    loadStreets(result, sheet)
+
+    const sourcesSheet = new XslxUtils.TableLoader(workbook.Sheets['Quellen']);
+    loadSources(result, sourcesSheet)
+    
+    let fullCounter = 0;
+    let partialCounter = 0;
+    for( let street of result.streets ) {
+        for( let geb of street.buildings ) {
+            if( geb.ownerList.length == 0 ) {
+                partialCounter++;
+            }
+            else {
+                fillUnkownDates(geb);
+                fullCounter++;
+            }
+        }
+    }
+
+    consola.info(`Häuserbuch ${path} geladen: ${partialCounter} teilweise und ${fullCounter} vollständige Einträge`)
+
+    return result;
+}
+
+function loadSources(result:Haeuserbuch, sheet:XslxUtils.TableLoader):void {
+    let i = 1
+    let skipped = 0
+    while(true) {
+        i++
+        const id = sheet.readString('id', i)
+        if( !id ) {
+            if( skipped++ > 5 ) {
+                break
+            }
+            continue
+        }
+
+        const signatureOld = sheet.readString('Signatur alt', i)
+        const name = sheet.readString('Name', i)
+        if( !name && !signatureOld ) {
+            continue
+        }
+
+        result.sources.set(id, new Source(
+            id,
+            signatureOld,
+            sheet.readString('Signatur neu', i),
+            sheet.readString('Archiv', i),
+            name
+        ))
+    }
+}
+
+function loadStreets(result:Haeuserbuch, sheet:XslxUtils.TableLoader):void {
     let currentStreet = null;
-    const sheet = new XslxUtils.TableLoader(workbook.Sheets['Blatt1']);
+    
     let i = 1;
     let skipped = 0;
     let building:Building = null;
@@ -89,6 +158,7 @@ function load(path:string):Street[] {
         const streetName = sheet.readString('Straße', i)
         const hnrCell = sheet.readString('Nummer', i)
         const infotext = sheet.readString('Information', i)
+        const quellen = sheet.readString('Quellen', i)
         if( !streetName && !hnrCell && !infotext ) {
             if( skipped++ > 5 ) {
                 break;
@@ -100,26 +170,24 @@ function load(path:string):Street[] {
         if( streetName && (currentStreet == null || currentStreet.name != streetName)) {
             currentStreet = new Street();
             currentStreet.name = streetName;
-            result.push(currentStreet);
+            result.streets.push(currentStreet);
         }
         
         if( streetName && hnrCell ) {
             building = new Building();
-            building.id = `${i}`
             building.street = streetName;
             building.number =  hnrCell;
             building.oldNumber = sheet.readString('Alte Nummer', i)
+            building.id = `${building.street}_${building.number}_${building.oldNumber.includes(',') ? building.oldNumber.split(',')[0] : building.oldNumber}`
             currentStreet.buildings.push(building);
             
             anmerkung = false
         }
 
-        if( infotext && streetName && !hnrCell ) {
-            const info:StreetInfo = {
-                text: infotext
-            };
+        let quellenParts = quellen ? quellen.split(',').map(q => q.trim()) : []
 
-            currentStreet.infos.push(info);
+        if( infotext && streetName && !hnrCell ) {
+            currentStreet.infos.push(new Info(infotext, quellenParts));
         }
         else if( infotext ) {
             let year = sheet.readString('Jahr', i)
@@ -139,18 +207,12 @@ function load(path:string):Street[] {
                     // Ignore, no date
                 }
 
-                const info:BuildingYearInfo = {
-                    year: parsedYear,
-                    text: infotext
-                };
+                const info = new BuildingYearInfo(parsedYear, infotext, quellenParts)
 
                 building.additionalInfos.push(info);
             }
             else if( !year ) {
-                const info:BuildingInfo = {
-                    type: determineInfoType(infotext),
-                    text: infotext
-                };
+                const info = new BuildingInfo(determineInfoType(infotext), infotext, quellenParts);
 
                 switch(info.type) {
                     case BuildingInfoType.Flur:
@@ -163,33 +225,12 @@ function load(path:string):Street[] {
             else {
                 let parsedYear:zeit.Zeit = zeit.parse(year);
 
-                const info:BuildingYearInfo = {
-                    year: parsedYear,
-                    text: infotext
-                };
-
+                const info = new BuildingYearInfo(parsedYear, infotext, quellenParts)
+                
                 building.ownerList.push(info);
             }
         }
     }
-    
-    let fullCounter = 0;
-    let partialCounter = 0;
-    for( let street of result ) {
-        for( let geb of street.buildings ) {
-            if( geb.ownerList.length == 0 ) {
-                partialCounter++;
-            }
-            else {
-                fillUnkownDates(geb);
-                fullCounter++;
-            }
-        }
-    }
-
-    consola.info(`Häuserbuch ${path} geladen: ${partialCounter} teilweise und ${fullCounter} vollständige Einträge`)
-
-    return result;
 }
 
 function fillUnkownDates(geb:Building) {
@@ -198,10 +239,10 @@ function fillUnkownDates(geb:Building) {
     do {
         unknown = false;
         changed = false;
-        for( let i=0; i < geb.ownerList.length; i++ ) {
+        for( let i=0; i < geb.ownerList.length-1; i++ ) {
             const y = geb.ownerList[i];
             if( y.year.isUnknown() ) {
-                if( i > 0 && i < geb.ownerList.length-1 ) {
+                if( i > 0 ) {
                     y.year = zeit.zeitraum(geb.ownerList[i-1].year, geb.ownerList[i+1].year, y.year.getText());
                 }
                 else if( i == 0 ) {

@@ -139,8 +139,8 @@ async function readDbBuildings(gemeinde:gemeindeType.GemeindeId):Promise<Buildin
 
 async function readHaeuserbuch(gemeinde:gemeindeType.GemeindeId):Promise<Info[]> {
     const result:Info[] = []
-    const hbList = haeuserbuchLoader.loadHaeuserbuchByGemeinde(gemeinde)
-    if( !hbList || hbList.length == 0 ) {
+    const hb = haeuserbuchLoader.loadHaeuserbuchByGemeinde(gemeinde)
+    if( !hb || hb.streets.length == 0 ) {
         return result
     }
 
@@ -151,10 +151,10 @@ async function readHaeuserbuch(gemeinde:gemeindeType.GemeindeId):Promise<Info[]>
             continue;
         }
 
-        hnrMap.set(b.hnr.toLowerCase(), [b.flur, b.parzelle])
+        hnrMap.set(cleanupHnr(b.hnr), [b.flur, b.parzelle])
     }
 
-    for( const hbStreet of hbList ) {
+    for( const hbStreet of hb.streets ) {
         for( const building of hbStreet.buildings ) {
             let infoMatcher = createMatcherByHaeuserbuchFlur(gemeinde, building);
             if( !infoMatcher ) {
@@ -188,7 +188,6 @@ function createMatcherByHaeuserbuchHnr(gemeinde:gemeindeType.GemeindeId, buildin
     }
 
     hnr = hnr.replace('und', ',').replace('u.', ',');
-    hnr = mapGenerator.optimizeHnr(hnr);
 
     const hnrParts = hnr.split(',').map(p => p.trim());
     let matcher:InfoMatcher = null
@@ -198,7 +197,7 @@ function createMatcherByHaeuserbuchHnr(gemeinde:gemeindeType.GemeindeId, buildin
             continue;
         }
 
-        const parzelle = hnrMap.get(part);
+        const parzelle = hnrMap.get(cleanupHnr(part));
         if( !parzelle ) {
             continue;
         }
@@ -220,6 +219,10 @@ function createMatcherByHaeuserbuchHnr(gemeinde:gemeindeType.GemeindeId, buildin
         }
     }
     return matcher
+}
+
+function cleanupHnr(hnr:string):string {
+    return mapGenerator.optimizeHnr(hnr.toLowerCase().split(' ').join(''))
 }
 
 function createMatcherByHaeuserbuchFlur(gemeinde:gemeindeType.GemeindeId, building:haeuserbuchLoader.Building):InfoMatcher|null {

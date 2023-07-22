@@ -186,14 +186,7 @@ export async function generateMetadata() {
         }
     }
 
-    consola.start("Schreibe Häuserbücher pro Gemeinde (JSON)");
-    for( const gemeinde of gemeindeType.GEMEINDEN ) {
-        if( gemeinde.isPartsDone() ) {
-            await metadataJsonWriter.writeMetadataHaeuserbuch(gemeinde)
-        }
-    }
-
-    const allParzellen = []
+    const allParzellen:mapReader.Parzelle[] = []
     consola.start("Schreibe Parzellen pro Gemeinde (JSON)");
     for( const gemeinde of gemeindeType.GEMEINDEN ) {
         for( const flur of gemeinde.getFlure() ) {
@@ -202,6 +195,13 @@ export async function generateMetadata() {
                 allParzellen.push(...parzellen)
                 await metadataJsonWriter.writeMetadataParzellen(gemeinde, flur.getId(), parzellen);
             }
+        }
+    }
+
+    consola.start("Schreibe Häuserbücher pro Gemeinde (JSON)");
+    for( const gemeinde of gemeindeType.GEMEINDEN ) {
+        if( gemeinde.isPartsDone() ) {
+            await metadataJsonWriter.writeMetadataHaeuserbuch(gemeinde, allParzellen)
         }
     }
 

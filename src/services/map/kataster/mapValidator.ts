@@ -11,6 +11,7 @@ import { MutterrolleTaxeKulturart } from '#kataster/mutterrolleNameListReader';
 import { NumberRangeMatcher } from '#kataster/numberRangeMatcher';
 import { lookupTaxierung } from '#kataster/kulturartenReader';
 import { consola } from 'consola';
+import { Haeuserbuch, loadHaeuserbuchByGemeinde } from './haeuserbuchReader.js';
 
 const katasterPath = process.env.KATASTER_PATH
 
@@ -63,13 +64,53 @@ export async function validateMap() {
     consola.start("Validiere Gebäude")
     result.add(await validateGebaeudeInsideParzelle())
 
+    consola.start("Validiere Häuserbücher")
+    for( const gem of gemeindeType.GEMEINDEN ) {
+        const hb = loadHaeuserbuchByGemeinde(gem)
+        if( hb ) {
+            consola.debug("Validiere Häuserbuch Gemeinde", gem.getId())
+            result.add(validateHaeuserbuch(gem, hb))
+        }
+    }
+
     try {
         writeValidationResult(result);
     }
     catch(exception) {
         consola.error("Fehler bein Schreiben der Validierungsergebnisse:", exception);
     }
+
     consola.success("Validierung abgeschlossen");
+}
+
+function validateHaeuserbuch(gemeinde:gemeindeType.GemeindeId, hb:Haeuserbuch):ValidationResult {
+    const result = new ValidationResult();
+    if( hb.streets.length == 0 ) {
+        result.logMessage(gemeinde, null, null, 'Keine Straßen/Gebäude im Häuserbuch gefunden')
+        return result
+    }
+
+    const missingSources = new Set<string>()
+    for( const street of hb.streets ) {
+        for( const source of street.infos.flatMap(i => i.sources) ) {
+            if( !hb.sources.has(source) ) {
+                missingSources.add(source)
+            }
+        }
+        for( const building of street.buildings ) {
+            for( const info of [...building.infos, ...building.additionalInfos, ...building.ownerList] ) {
+                for( const source of info.sources ) {
+                    if( !hb.sources.has(source) ) {
+                        missingSources.add(source)
+                    }
+                }
+            }
+        }
+    }
+    if( missingSources.size > 0 ) {
+        result.logMessage(gemeinde, null, null, 'Fehlende Quellenangaben im Häuserbuch: '+[...missingSources.values()].join(','))
+    }
+    return result
 }
 
 async function validateGebaeudeInsideParzelle():Promise<ValidationResult> {
@@ -97,7 +138,7 @@ async function validateParzellenGeometry():Promise<ValidationResult> {
     const query = await database.getClient().query({
         text: `SELECT DISTINCT a.gemeinde as gemeinde,a.flur as flur,a.nr as nr
                 FROM kataster_gen_areas as a
-                WHERE NOT ST_ISVALID(a.the_geom);`, 
+                WHERE NOT ST_ISVALID(a.the_geom) AND a.fortschreibung IS NULL;`, 
     })
 
     for( const r of query.rows ) {

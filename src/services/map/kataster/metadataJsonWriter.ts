@@ -48,7 +48,8 @@ type GemeindeExport = {
     qm:string, // quelle mutterrollen
     qg:string, // quelle gueterverzeichnis
     bb:number[], // bbox
-    a:InfoExport[] // Infos
+    a:InfoExport[], // Infos
+    hb:boolean
 }
 
 type FlurExport = {
@@ -161,7 +162,8 @@ export async function generateGemeindeJsonExport(gemeinde:gemeindeType.GemeindeI
             qm: g.getQuelleMutterrollen(),
             qg: g.getQuelleGueterverzeichnis(),
             bb: box,
-            a: infos.filter(i => i.matches(g.getParent().getKreis(),g.getParent(),g,null,null)).map(i => mapInfo(i))
+            a: infos.filter(i => i.matches(g.getParent().getKreis(),g.getParent(),g,null,null)).map(i => mapInfo(i)),
+            hb: haeuserbuchReader.loadHaeuserbuchByGemeinde(g) != null
         })
     }
 
@@ -397,17 +399,28 @@ function mapInfo(info:infoReader.Info):InfoExport {
 type HaeuserbuchExport = {
     b:HaeuserbuchBuildingExport[], // buildings
     q:string, // quelle
-    u:string // url
+    u:string, // url
+    s:HaeuserbuchSourceExport[] // sources
+}
+
+type HaeuserbuchSourceExport = {
+    i:string, // id
+    o:string, // signatureOld
+    s:string, // signatureNew
+    a:string, // archive
+    n:string, // name
 }
 
 type HaeuserbuchInfoExport = {
-    t:number,
-    x:string
+    t:number,  // type
+    x:string,  // text
+    s:string[] // sources
 }
 
 type HaeuserbuchYearInfoExport = {
-    y:string,
-    x:string
+    y:string, // year
+    x:string, // text
+    s:string[] // sources
 }
 
 type HaeuserbuchBuildingExport = {
@@ -419,57 +432,101 @@ type HaeuserbuchBuildingExport = {
     b:HaeuserbuchInfoExport[], // infos
     e:HaeuserbuchYearInfoExport[], // ownerList
     a:HaeuserbuchYearInfoExport[], // additionalInfos
+    l:number[] // location
 }
 
-export async function writeMetadataHaeuserbuch(gemeinde:gemeindeType.GemeindeId) {
+function avgLocation(locations:number[][]):number[] {
+    if( !locations || locations.length == 0 ) {
+        return null
+    }
+
+    const result:number[] = [0,0]
+    for( const l of locations ) {
+        result[0] += l[0]
+        result[1] += l[1]
+    }
+
+    return [result[0]/locations.length, result[1]/locations.length]
+}
+
+function createHaeuserbuchIdLocationList(parzellen:mapReader.Parzelle[]):Map<string,number[][]> {
+    const result = new Map<string,number[][]>()
+
+    for( const parzelle of parzellen ) {
+        for( const info of parzelle.getInfo().filter(i => i.type == 'haeuserbuch').map(i => i as infoReader.HaeuserbuchInfo) ) {
+            if( result.has(info.id) ) {
+                result.get(info.id).push(parzelle.location)
+            }
+            else {
+                result.set(info.id, [parzelle.location])
+            }
+        }
+    }
+
+    return result
+}
+
+export async function writeMetadataHaeuserbuch(gemeinde:gemeindeType.GemeindeId, parzellen:mapReader.Parzelle[]) {
     const hb = haeuserbuchReader.loadHaeuserbuchByGemeinde(gemeinde)
-    if( hb == null || hb.length == 0 ) {
+    if( !hb || hb.streets.length == 0 ) {
         return
     }
+
+    const idLocationMap = createHaeuserbuchIdLocationList(parzellen)
     
     const out = {
         b:[],
         q:null,
-        u:null
-    } as HaeuserbuchExport;
+        u:null,
+        s:[]
+    } as HaeuserbuchExport
 
     if( gemeinde.getId() == gemeindeType.DORTMUND.getId() ) {
-        // Hardcoded for now. Will be refacted once a second 'Häuserbuch' is being integrated
+        // Hardcoded for now. Will be refactored once a second 'Häuserbuch' is being integrated
         out.q = 'Dortmunder Häuserbuch, Robert von den Berken, 1927'
         out.u = 'https://nbn-resolving.org/urn:nbn:de:hbz:6:1-8118'
     }
 
-    for( const street of hb ) {
+    for( const street of hb.streets ) {
         for(const building of street.buildings) {
-            
             out.b.push({
                 i:building.id,
                 n:building.number,
                 o:building.oldNumber,
                 s:building.street,
-                f:mapHaeuserbuchInfo(building.flur),
-                b:building.infos.map(i => mapHaeuserbuchInfo(i)),
-                e:building.ownerList.map(i => mapHaeuserbuchYearInfo(i)),
-                a:building.additionalInfos.map(i => mapHaeuserbuchYearInfo(i))
+                f:mapHaeuserbuchInfo(hb, building.flur),
+                b:building.infos.map(i => mapHaeuserbuchInfo(hb, i)),
+                e:building.ownerList.map(i => mapHaeuserbuchYearInfo(hb, i)),
+                a:building.additionalInfos.map(i => mapHaeuserbuchYearInfo(hb, i)),
+                l:avgLocation(idLocationMap.get(building.id))
             } as HaeuserbuchBuildingExport)
         }
+    }
+    for( const source of hb.sources.values() ) {
+        out.s.push({
+            i:source.id,
+            o:source.signatureOld,
+            s:source.signatureNew,
+            a:source.archive,
+            n:source.name
+        })
     }
    
     fs.writeFileSync(katasterPath+"/out_metadata/haeuserbuch_"+gemeinde.getId()+".json", JSON.stringify(out, (k, v) => v != null ? v : undefined, 0));
 }
 
-function mapHaeuserbuchInfo(info:haeuserbuchReader.BuildingInfo):HaeuserbuchInfoExport {
+function mapHaeuserbuchInfo(hb:haeuserbuchReader.Haeuserbuch, info:haeuserbuchReader.BuildingInfo):HaeuserbuchInfoExport {
     if( !info ) {
         return null
     }
-    return {t:info.type, x:info.text}
+    return {t:info.type, x:info.text, s:info.sources.filter(s => hb.sources.has(s))}
 }
 
-function mapHaeuserbuchYearInfo(info:haeuserbuchReader.BuildingYearInfo):HaeuserbuchYearInfoExport {
+function mapHaeuserbuchYearInfo(hb:haeuserbuchReader.Haeuserbuch, info:haeuserbuchReader.BuildingYearInfo):HaeuserbuchYearInfoExport {
     if( !info ) {
         return null
     }
-    return {y:info.year?.getText(), x:info.text}
+    return {y:info.year?.getText(), x:info.text, s:info.sources.filter(s => hb.sources.has(s))}
 }
 
 type AllParzellenExport = {
