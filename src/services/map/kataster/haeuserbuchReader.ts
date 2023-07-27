@@ -44,7 +44,7 @@ export class BuildingYearInfo extends Info {
 export class Street {
     name:string
     buildings:Building[] = []
-    infos:Info[] = []
+    infos:BuildingYearInfo[] = []
 }
 
 
@@ -55,6 +55,7 @@ export class Source {
 export class Haeuserbuch {
     public streets:Street[] = []
     public sources:Map<string,Source> = new Map()
+    public emptySources:Set<string> = new Set()
 
     constructor() {}
 }
@@ -133,6 +134,7 @@ function loadSources(result:Haeuserbuch, sheet:XslxUtils.TableLoader):void {
         const signatureOld = sheet.readString('Signatur alt', i)
         const name = sheet.readString('Name', i)
         if( !name && !signatureOld ) {
+            result.emptySources.add(id)
             continue
         }
 
@@ -147,7 +149,7 @@ function loadSources(result:Haeuserbuch, sheet:XslxUtils.TableLoader):void {
 }
 
 function loadStreets(result:Haeuserbuch, sheet:XslxUtils.TableLoader):void {
-    let currentStreet = null;
+    let currentStreet:Street = null;
     
     let i = 1;
     let skipped = 0;
@@ -171,6 +173,7 @@ function loadStreets(result:Haeuserbuch, sheet:XslxUtils.TableLoader):void {
             currentStreet = new Street();
             currentStreet.name = streetName;
             result.streets.push(currentStreet);
+            building = null
         }
         
         if( streetName && hnrCell ) {
@@ -185,28 +188,27 @@ function loadStreets(result:Haeuserbuch, sheet:XslxUtils.TableLoader):void {
         }
 
         let quellenParts = quellen ? quellen.split(',').map(q => q.trim()) : []
+        let year = sheet.readString('Jahr', i)
+        let parsedYear:zeit.Zeit
+        try {
+            const yearInt = parseInt(infotext.substr(0,5).trim());
+            if( yearInt > 1000 && yearInt < 2000 ) {
+                parsedYear = zeit.parse(`${yearInt}`)
+            }
+        }
+        catch(ex) {
+            // Ignore, no date
+        }
 
-        if( infotext && streetName && !hnrCell ) {
-            currentStreet.infos.push(new Info(infotext, quellenParts));
+        if( infotext && !building ) {
+            currentStreet.infos.push(new BuildingYearInfo(parsedYear, infotext, quellenParts));
         }
         else if( infotext ) {
-            let year = sheet.readString('Jahr', i)
             if( year.toLowerCase().startsWith('anm') ) {
                 anmerkung = true
-            }         
+            }
 
             if( anmerkung ) {
-                let parsedYear:zeit.Zeit
-                try {
-                    const yearInt = parseInt(infotext.substr(0,5).trim());
-                    if( yearInt > 1000 && yearInt < 2000 ) {
-                        parsedYear = zeit.parse(`${yearInt}`)
-                    }
-                }
-                catch(ex) {
-                    // Ignore, no date
-                }
-
                 const info = new BuildingYearInfo(parsedYear, infotext, quellenParts)
 
                 building.additionalInfos.push(info);

@@ -93,14 +93,14 @@ function validateHaeuserbuch(gemeinde:gemeindeType.GemeindeId, hb:Haeuserbuch):V
     const missingSources = new Set<string>()
     for( const street of hb.streets ) {
         for( const source of street.infos.flatMap(i => i.sources) ) {
-            if( !hb.sources.has(source) ) {
+            if( !hb.sources.has(source) && !hb.emptySources.has(source) ) {
                 missingSources.add(source)
             }
         }
         for( const building of street.buildings ) {
             for( const info of [...building.infos, ...building.additionalInfos, ...building.ownerList] ) {
                 for( const source of info.sources ) {
-                    if( !hb.sources.has(source) ) {
+                    if( !hb.sources.has(source) && !hb.emptySources.has(source) ) {
                         missingSources.add(source)
                     }
                 }
@@ -108,7 +108,12 @@ function validateHaeuserbuch(gemeinde:gemeindeType.GemeindeId, hb:Haeuserbuch):V
         }
     }
     if( missingSources.size > 0 ) {
-        result.logMessage(gemeinde, null, null, 'Fehlende Quellenangaben im Häuserbuch: '+[...missingSources.values()].join(','))
+        const missingSourcesIds = [...missingSources.values()]
+        missingSourcesIds.sort()
+        result.logMessage(gemeinde, null, null, 'Fehlende Quellenangaben im Häuserbuch: '+missingSourcesIds.join(','))
+    }
+    if( hb.emptySources.size > 0 ) {
+        result.logMessage(gemeinde, null, null, hb.emptySources.size+' unvollständige Quellenangaben im Häuserbuch')
     }
     return result
 }

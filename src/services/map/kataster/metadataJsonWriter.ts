@@ -398,6 +398,7 @@ function mapInfo(info:infoReader.Info):InfoExport {
 
 type HaeuserbuchExport = {
     b:HaeuserbuchBuildingExport[], // buildings
+    t:HaeuserbuchStreetExport[], // streets
     q:string, // quelle
     u:string, // url
     s:HaeuserbuchSourceExport[] // sources
@@ -433,6 +434,12 @@ type HaeuserbuchBuildingExport = {
     e:HaeuserbuchYearInfoExport[], // ownerList
     a:HaeuserbuchYearInfoExport[], // additionalInfos
     l:number[] // location
+}
+
+type HaeuserbuchStreetExport = {
+    i:string, // id
+    n:string, // name
+    b:HaeuserbuchYearInfoExport[], // infos
 }
 
 function avgLocation(locations:number[][]):number[] {
@@ -478,7 +485,8 @@ export async function writeMetadataHaeuserbuch(gemeinde:gemeindeType.GemeindeId,
         b:[],
         q:null,
         u:null,
-        s:[]
+        s:[],
+        t:[]
     } as HaeuserbuchExport
 
     if( gemeinde.getId() == gemeindeType.DORTMUND.getId() ) {
@@ -501,6 +509,12 @@ export async function writeMetadataHaeuserbuch(gemeinde:gemeindeType.GemeindeId,
                 l:avgLocation(idLocationMap.get(building.id))
             } as HaeuserbuchBuildingExport)
         }
+        
+        out.t.push({
+            i:street.name,
+            n:street.name,
+            b:street.infos.map(i => mapHaeuserbuchYearInfo(hb, i)),
+        } as HaeuserbuchStreetExport)
     }
     for( const source of hb.sources.values() ) {
         out.s.push({
