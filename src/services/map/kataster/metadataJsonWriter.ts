@@ -89,7 +89,7 @@ export async function generateBuergermeistereiJsonExport(buergermeistereien:geme
             k: b.getKreis().getId(),
             n: b.getName(),
             i: b.getId(),
-            a: infos.filter(i => i.matches(b.getKreis(),b,null,null,null)).map(i => mapInfo(i))
+            a: infos.filter(i => i.matches(b.getKreis(),b,null,null,null)).map(i => mapInfo(null, i))
         })
     }
 
@@ -113,7 +113,7 @@ export async function generateKreisJsonExport(kreise:gemeindeType.Kreis[], infos
         out.push({
             n: k.getName(),
             i: k.getId(),
-            a: infos.filter(i => i.matches(k,null,null,null,null)).map(i => mapInfo(i))
+            a: infos.filter(i => i.matches(k,null,null,null,null)).map(i => mapInfo(null, i))
         })
     }
 
@@ -162,7 +162,7 @@ export async function generateGemeindeJsonExport(gemeinde:gemeindeType.GemeindeI
             qm: g.getQuelleMutterrollen(),
             qg: g.getQuelleGueterverzeichnis(),
             bb: box,
-            a: infos.filter(i => i.matches(g.getParent().getKreis(),g.getParent(),g,null,null)).map(i => mapInfo(i)),
+            a: infos.filter(i => i.matches(g.getParent().getKreis(),g.getParent(),g,null,null)).map(i => mapInfo(g, i)),
             hb: haeuserbuchReader.loadHaeuserbuchByGemeinde(g) != null
         })
     }
@@ -352,7 +352,7 @@ export async function writeMetadataParzellen(gemeinde:gemeindeType.GemeindeId, f
 
     for( const e of parzellen ) {
         const info = e.getInfo();
-        const infoExport = info.map(i => mapInfo(i)).filter(i => i != null);
+        const infoExport = info.map(i => mapInfo(gemeinde, i)).filter(i => i != null);
 
         out.push({
             n:e.nr,
@@ -371,7 +371,7 @@ export async function writeMetadataParzellen(gemeinde:gemeindeType.GemeindeId, f
     fs.writeFileSync(katasterPath+"/out_metadata/parzellen_"+gemeinde.getId()+"_"+flur+".json", JSON.stringify(out, (k, v) => v != null ? v : undefined, 0));
 }
 
-function mapInfo(info:infoReader.Info):InfoExport {
+function mapInfo(gemeinde:gemeindeType.GemeindeId, info:infoReader.Info):InfoExport {
     if( info instanceof infoReader.WikipediaInfo ) {
         return {
             t:info.type,
@@ -388,7 +388,7 @@ function mapInfo(info:infoReader.Info):InfoExport {
         return {
             t:info.type,
             a:{
-                g:info.gemeinde.getId(),
+                g:info.gemeinde.getId() == gemeinde?.getId() ? null : info.gemeinde.getId(),
                 x:info.id
             }
         }

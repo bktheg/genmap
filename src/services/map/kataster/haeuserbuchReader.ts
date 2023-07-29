@@ -151,6 +151,7 @@ function loadSources(result:Haeuserbuch, sheet:XslxUtils.TableLoader):void {
 function loadStreets(result:Haeuserbuch, sheet:XslxUtils.TableLoader):void {
     let currentStreet:Street = null;
     
+    const idSet = new Set<string>()
     let i = 1;
     let skipped = 0;
     let building:Building = null;
@@ -181,7 +182,12 @@ function loadStreets(result:Haeuserbuch, sheet:XslxUtils.TableLoader):void {
             building.street = streetName;
             building.number =  hnrCell;
             building.oldNumber = sheet.readString('Alte Nummer', i)
-            building.id = `${building.street}_${building.number}_${building.oldNumber.includes(',') ? building.oldNumber.split(',')[0] : building.oldNumber}`
+            let id = `${building.street}_${building.number}_${building.oldNumber.includes(',') ? building.oldNumber.split(',')[0] : building.oldNumber}`
+            if( idSet.has(id) ) {
+              id = id + `_${currentStreet.buildings.length + 1}`;  
+            }
+            building.id = id
+            idSet.add(id)
             currentStreet.buildings.push(building);
             
             anmerkung = false
