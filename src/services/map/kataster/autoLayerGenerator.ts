@@ -228,7 +228,7 @@ function reducePoints(parzellen:Parzelle[]):void {
 
 export async function generateAutoLayer(gemeinde:gemeindeType.GemeindeId) {
     const parzellen = new ParzellenRegistry();
-    const dataReader = createRawDataReader();
+    const dataReader = await createRawDataReader();
     try {
         await dataReader.readKatasterParzellen(parzellen, gemeinde);
         await dataReader.readKatasterGebaeude(parzellen, gemeinde);

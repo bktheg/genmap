@@ -4,6 +4,7 @@ import * as gemeindeType from '#kataster/gemeindeType';
 import { consola } from 'consola';
 import {Parzelle, ParzellenRegistry} from '#kataster/parzellenRegistry'
 import sqlite from 'spatialite'
+import * as fs from 'fs'
 
 
 export type GeoJsonGeometry = {
@@ -18,6 +19,7 @@ export class Strasse {
 }
 
 interface RawDataReader {
+    createDatabase():Promise<void>
     readKatasterParzellen(parzellen:ParzellenRegistry, gemeinde:gemeindeType.GemeindeId):Promise<void>
     readKatasterGebaeude(parzellen:ParzellenRegistry, gemeinde:gemeindeType.GemeindeId):Promise<void>
     readGemeindegrenzen():Promise<Map<gemeindeType.GemeindeId,GeoJsonGeometry>>
@@ -90,6 +92,49 @@ class SpatialiteRawDataReader implements RawDataReader {
 
     constructor(private file:String) {
         this.db = new sqlite.Database(file);
+    }
+
+    async createDatabase():Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            this.db.spatialite((err) => {
+                if( err ) {
+                    consola.error("Fehler beim Lesen aus SpatiaLite", this.file, ":", err)
+                    reject(err)
+                    return
+                }
+
+                this.db.exec(`
+                    SELECT InitSpatialMetaData();
+
+                    CREATE TABLE "1826_bezeichnungen"(pkuid integer primary key autoincrement,"name" text,"flur" integer, "gemeinde" TEXT, "typ" INTEGER);
+                    SELECT AddGeometryColumn("1826_bezeichnungen", "geometry", 4326, "POINT", 2);
+                    SELECT CreateSpatialIndex("1826_bezeichnungen", "geometry");
+                    
+                    CREATE TABLE "1826_gemeindegrenzen"(pkuid integer primary key autoincrement,"gemeinde" text, "buergermeisterei" TEXT, "kreis" TEXT, "gemeindeid" TEXT);
+                    SELECT AddGeometryColumn("1826_gemeindegrenzen", "geometry", 4326, "POLYGON", 2);
+                    SELECT CreateSpatialIndex("1826_gemeindegrenzen", "geometry");
+                    
+                    CREATE TABLE 'kataster_flurstuecke' ( "ogc_fid" INTEGER PRIMARY KEY AUTOINCREMENT, 'id' BIGINT, 'flur' BIGINT, 'zaehler' BIGINT, 'nenner' BIGINT, 'typ' INTEGER, 'nr' VARCHAR, 'gemeinde' VARCHAR(32), 'rawtype' VARCHAR(31), 'hinweis' VARCHAR(512));
+                    SELECT AddGeometryColumn("kataster_flurstuecke", "geometry", 4326, "POLYGON", 2);
+                    SELECT CreateSpatialIndex("kataster_flurstuecke", "geometry");
+
+                    CREATE TABLE "kataster_gebaeude"("ogc_fid" INTEGER PRIMARY KEY,'flur' BIGINT, 'zaehler' BIGINT, 'nenner' BIGINT, 'hnr' VARCHAR, 'strasse' VARCHAR, 'nebengeb' INTEGER, 'rotlabel' INTEGER, 'bezeichnung' VARCHAR, 'gemeinde' VARCHAR, 'nr' VARCHAR(10), 'katasternr' VARCHAR(6));
+                    SELECT AddGeometryColumn("kataster_gebaeude", "geometry", 4326, "POLYGON", 2);
+                    SELECT CreateSpatialIndex("kataster_gebaeude", "geometry");
+
+                    CREATE TABLE 'kataster_strassen' ( "ogc_fid" INTEGER PRIMARY KEY AUTOINCREMENT, 'id' BIGINT, 'name' VARCHAR(80), 'gemeinde' VARCHAR(32), 'flur' INTEGER, 'type' INTEGER, 'anmerkung' VARCHAR(512));
+                    SELECT AddGeometryColumn("kataster_strassen", "geometry", 4326, "LINESTRING", 2);
+                    SELECT CreateSpatialIndex("kataster_strassen", "geometry");
+                `, (err) => {
+                    if( err ) {
+                        consola.error("Fehler beim Erstellen der SpatiaLite-Datenbank unter ", this.file, ":", err)
+                        reject(err)
+                        return
+                    }
+                    resolve()
+                })
+            })
+        })
     }
 
     async readKatasterParzellen(parzellen:ParzellenRegistry, gemeinde:gemeindeType.GemeindeId):Promise<void> {
@@ -324,12 +369,16 @@ class SpatialiteRawDataReader implements RawDataReader {
     }
 }
 
-export function createRawDataReader() {
+export async function createRawDataReader() {
     if( !process.env.INPUT_SPATIALITE ) {
-        consola.error("Keine SpatiaLite gefunden, kann keine Daten lesen. Bitte INPUT_SPATIALITE setzen.")
-        throw new Error("Keine SpatiaLite gefunden")
+        consola.error("Keine SpatiaLite konfiguriert. Bitte INPUT_SPATIALITE setzen.")
+        throw new Error("Keine SpatiaLite konfiguriert")
     }
     const file = process.env.INPUT_SPATIALITE
+    if( !fs.existsSync(file) ) {
+        consola.warn("Keine SpatiaLite-Datenbank unter", file, "gefunden. Erstelle neue SpatiaLite-Datenbank...")
+        await new SpatialiteRawDataReader(file).createDatabase()
+    }
     consola.debug("Lese Daten aus SpatiaLite", file)
     return new SpatialiteRawDataReader(file)
 }

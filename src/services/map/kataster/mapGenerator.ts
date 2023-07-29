@@ -291,7 +291,7 @@ export async function generateMap(gemeinde:gemeindeType.GemeindeId, writeAllPoin
         }
     }
 
-    const reader = createRawDataReader()
+    const reader = await createRawDataReader()
     try {
         consola.start("Schreibe Lageangaben")
         const bezeichnungen = await reader.readBezeichnungen(gemeinde)

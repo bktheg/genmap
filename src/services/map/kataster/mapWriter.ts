@@ -689,7 +689,7 @@ export async function writeMetadataKreise(kreise:gemeindeType.Kreis[]) {
 
 export async function generateAdminAreas() {
     let grenzen:Map<gemeindeType.GemeindeId,GeoJsonGeometry>;
-    const reader = createRawDataReader()
+    const reader = await createRawDataReader()
     try {
         grenzen = await reader.readGemeindegrenzen()
     }
