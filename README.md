@@ -16,7 +16,7 @@ Das genmap-tool dient dazu die Daten des Rheinisch-Westfälischen Urkatasters au
 Das Tool basiert auf NodeJS. Getestet wurde es mit NodeJS 16. Die Eingangsdaten müssen als SpatiaLite-Datei (Kartendaten) sowie Exceldateien (abgeschriebene Dokumente) bereitgestellt werden. Die von der Software erzeugten Daten werden in eine PostGIS-Datenbank geschrieben.
 
 ### Katasterverzeichnis
-Im Katasterverzeichnis werden alle abgeschriebenen Unterlagen als Exceldateien abgelegt. Beim genmap-Tool liegt dieses *nicht* bei. Ein Beispielsatz an Dateien wird wahrscheinlich später an anderer Stelle veröffentlicht.
+Im Katasterverzeichnis werden alle abgeschriebenen Unterlagen als Exceldateien abgelegt. Beim genmap-Tool liegt dieses *nicht* bei. Ein Beispielsatz an Dateien ist hier zu finden: https://github.com/bktheg/dortmund1826-data
 
 Das Katasterverzeichnis hat folgende Verzeichnisstruktur:
 * additional_infos - enthält alle Excel-Dateien mit Zusatzinformationen wie Zitaten aus Büchern, Links auf Wikipediaartikel. Verwendet in der Parzellenansicht auf dortmund1826.de
