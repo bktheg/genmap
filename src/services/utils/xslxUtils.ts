@@ -24,13 +24,15 @@ export class TableLoader {
     private colMap:Map<string,string> = new Map();
 
     constructor(private sheet:XLSX.WorkSheet) {
-        for( let col='A'; col <= 'Z'; col=String.fromCharCode(col.charCodeAt(0) + 1) ) {
-            const header = this.sheet[col+'1'];
-            if( header ) {
-                this.colMap.set(header.v.toString().toLowerCase(), col);
-            }
-            else {
-                break;
+        if( sheet ) {
+            for( let col='A'; col <= 'Z'; col=String.fromCharCode(col.charCodeAt(0) + 1) ) {
+                const header = this.sheet[col+'1'];
+                if( header ) {
+                    this.colMap.set(header.v.toString().toLowerCase(), col);
+                }
+                else {
+                    break;
+                }
             }
         }
     }
@@ -47,16 +49,27 @@ export class TableLoader {
         return '';
     }
 
-    readOptionalString(colName:string, row:number):string {
+    readOptionalString(colName:string, row:number, defaultValue:string):string {
         const col = this.colMap.get(colName.toLowerCase());
         if( !col ) {
-            return ''
+            return defaultValue
         }
         const cell = this.sheet[col+row];
         if( cell ) {
             return cell.v.toString();
         }
-        return '';
+        return defaultValue;
+    }
+
+    readBoolean(colName:string, row:number):boolean {
+        const value = this.readString(colName, row)
+        return value.toLocaleLowerCase() === 'x'
+    }
+
+    readOptionalBoolean(colName:string, row:number, defaultValue:boolean):boolean {
+        const value = this.readOptionalString(colName, row, defaultValue ? 'x' : '')
+
+        return value.toLocaleLowerCase() === 'x'
     }
     
     readNumber(colName:string, row:number):number {

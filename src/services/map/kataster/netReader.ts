@@ -22,11 +22,11 @@ function toNumber(text:string):number {
     return parseFloat(text.toString().replace(',', '.'));
 }
 
-function toCoord(sign:string, value:string):number {
-    if( sign == null || sign == '' || value == null || value == '' ) {
+function toCoord(sign:string, value:string, settings:FlurNetSetting):number {
+    if( value == null || value == '' || settings.ignoreCoordinates ) {
         return null;
     }
-    return ('-' == sign ? -1 : 1)*toNumber(value);
+    return ('-' == sign ? -1 : 1)*toNumber(value)*(settings.flip ? -1 : 1);
 }
 
 export class NetPoints {
@@ -114,7 +114,7 @@ class FlurId {
     constructor(gemeindeId:gemeindeType.GemeindeId, station:string) {
         this.gemeindeId = gemeindeId;
         if( isNaN(+station) ) {
-            this.flurNr = flurToNumber(station);
+            this.flurNr = this.flurToNumber(station);
         } 
         else {
             this.flurNr = parseInt(station);
@@ -131,6 +131,11 @@ class FlurId {
         }
     }
 
+    flurToNumber(flur:string):number {
+        const parts = flur.split(' ');
+        return romanToInt(parts[1]);
+    }
+
     asString():string {
         const gemeindeStr = this.gemeindeId.getId();
         return (gemeindeStr ? gemeindeStr+"-" : "")
@@ -144,19 +149,54 @@ class FlurId {
     }
 }
 
+class FlurNetSetting {
+    constructor(public ignoreCoordinates:boolean=false, public flip:boolean=false) {}
+}
+
+function readFlurSettings(sheet:XslxUtils.TableLoader, gemeinde:gemeindeType.GemeindeId):Map<number,FlurNetSetting> {
+    const result = new Map<number,FlurNetSetting>()
+    for( const flur of gemeinde.getFlure() ) {
+        result.set(flur.getId(), new FlurNetSetting());
+    }
+
+    if( sheet.hasColumn('Flur') ) {
+        let i = 1
+        let skipped = 0
+        while(true) {
+            i++
+            const flur = sheet.readNumber('Flur', i)
+            if( !flur ) {
+                if( skipped++ > 5 ) {
+                    break
+                }
+                continue
+            }
+            if( !result.has(flur) ) {
+                consola.warn("Unbekannte Flur", flur, "in den Netz-Einstellungen von Gemeinde", gemeinde.getId())
+                continue
+            }
+            result.get(flur).ignoreCoordinates = sheet.readOptionalBoolean('Ignoriere Koordinaten', i, false)
+            result.get(flur).flip = sheet.readOptionalBoolean('Spiegeln', i, false)
+        }
+    }
+    return result
+}
+
 function readNetPointsFromExcel(result:NetPoints, file:string, gemeindeId:gemeindeType.GemeindeId):NetPoints {
     const workbook = XLSX.readFile(file);
     let sheet = workbook.Sheets['Rechnung goniom. Koord.'];
     if( !sheet ) {
         sheet = workbook.Sheets[workbook.SheetNames[0]];
     }
-    const initialPointCount = result.points.size;
-    
+
+    const flurSettings = readFlurSettings(new XslxUtils.TableLoader(workbook.Sheets['Einstellungen']), gemeindeId)
+
     let flur:FlurId = null;
     let i = 3; // Skip header
     let skipped = 0;
     let list:StationDescriptor[] = []
     let subpolygon:boolean = false;
+    let settings = new FlurNetSetting()
     while(true) {
         i++;
         const station = readCell(sheet, 'B', i);
@@ -186,24 +226,30 @@ function readNetPointsFromExcel(result:NetPoints, file:string, gemeindeId:gemein
         }
 
         if( wGrad == '' && station.toLowerCase().startsWith('flur ') ) {
-            calculatePointDescrList(list, result, subpolygon, flur, gemeindeId);
+            calculatePointDescrList(list, result, subpolygon, flur, gemeindeId, settings);
             list = [];
             flur = new FlurId(gemeindeId, station);
+            settings = flurSettings.get(flur.getFlurNr())
+            if( settings == null ) {
+                consola.warn("Unbekannte Flur", flur.getFlurNr(), "in Netzdatei für Gemeinde", gemeindeId.getId(), "angegeben. Station: "+station)
+                settings = new FlurNetSetting()
+            }
             subpolygon = false;
         }
         else if( wGrad == '' && station.toLowerCase() == 'koordinaten' ) {
-            calculatePointDescrList(list, result, subpolygon, flur, gemeindeId);
+            calculatePointDescrList(list, result, subpolygon, flur, gemeindeId, flurSettings.get(flur?.getFlurNr()));
             list = [];
             flur = null;
+            settings = new FlurNetSetting()
             subpolygon = false;
         }
         else if( wGrad == '' && station.toLowerCase().startsWith('punkte zwischen') ) {
-            calculatePointDescrList(list, result, subpolygon, flur, gemeindeId);
+            calculatePointDescrList(list, result, subpolygon, flur, gemeindeId, flurSettings.get(flur?.getFlurNr()));
             list = [];
             subpolygon = true;
         }
         else if (wGrad == '' && station.toLowerCase().startsWith('betrachtungen der coordinaten ')) {
-            calculatePointDescrList(list, result, subpolygon, flur, gemeindeId);
+            calculatePointDescrList(list, result, subpolygon, flur, gemeindeId, flurSettings.get(flur?.getFlurNr()));
             list = [];
             subpolygon = true;
         }
@@ -211,17 +257,17 @@ function readNetPointsFromExcel(result:NetPoints, file:string, gemeindeId:gemein
             list.push(new StationDescriptor(stationToId(gemeindeId,flur,station), 
                 wGrad != '' ? toNumber(wGrad)+toNumber(wM)/100+toNumber(wS)/10000 : null, 
                 toNumber(distance),
-                toCoord(signX, x),
-                toCoord(signY, y)));
+                toCoord(signX, x, settings),
+                toCoord(signY, y, settings)));
         }
     }
     
-    calculatePointDescrList(list, result, subpolygon, flur, gemeindeId);
+    calculatePointDescrList(list, result, subpolygon, flur, gemeindeId, flurSettings.get(flur?.getFlurNr()));
 
     return result;
 }
 
-function calculatePointDescrList(stationen:StationDescriptor[], netPoints:NetPoints, subpolygon:boolean, flur:FlurId, gemeindeId:gemeindeType.GemeindeId):void {
+function calculatePointDescrList(stationen:StationDescriptor[], netPoints:NetPoints, subpolygon:boolean, flur:FlurId, gemeindeId:gemeindeType.GemeindeId, flurSettings:FlurNetSetting):void {
     if( stationen.length < 2 ) {
         return;
     }
@@ -266,7 +312,7 @@ function calculatePointDescrList(stationen:StationDescriptor[], netPoints:NetPoi
                 prev.id, 
                 current.id, 
                 100, LengthUnit.PERCENT, 
-                subpolygon ? angle : -angle, 
+                subpolygon || flurSettings.flip ? angle : -angle, 
                 distance*10));
         }
     }
@@ -335,7 +381,7 @@ function stationToId(gemeindeId:gemeindeType.GemeindeId,flur:FlurId,station:stri
         const gemeinde = parts.length > 2 ? expandGemeindeIdStr(parts[2]) : gemeindeId;
         const gid = gemeinde.getId();
 
-        return (gid ? gid+'-' : '')+(gemeinde.getParent().isPointPerGemeinde() && !explicitFlur ? "" : parts[1]+'-')+parts[0];
+        return (gid+'-')+(gemeinde.getParent().isPointPerGemeinde() && !explicitFlur ? "" : parts[1]+'-')+parts[0];
     }
     catch(ex) {
         throw new Error("Failed to generate net point id for "+gemeindeId.getId()+" flur "+flur.getFlurNr()+" point "+station+": "+ex)
@@ -350,11 +396,6 @@ function expandGemeindeIdStr(gemeindeIdStr:string):gemeindeType.GemeindeId {
     catch( ex ) {
         return gemeindeType.forName(str);
     }
-}
-
-function flurToNumber(flur:string):number {
-    const parts = flur.split(' ');
-    return romanToInt(parts[1]);
 }
 
 const romanMap = new Map([
