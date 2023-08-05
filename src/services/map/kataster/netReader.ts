@@ -288,6 +288,10 @@ function calculatePointDescrList(stationen:StationDescriptor[], netPoints:NetPoi
         stationen.splice(stationen.length-1, 1);
     }
 
+    if( !gemeindeId.getCoordinateSystem().isValid() ) {
+        consola.warn("Fehlender Nullpunkt/ungültiges Koordinatensystem für Gemeinde", gemeindeId.getId())
+    }
+
     const result:PointDescriptor[] = [];
 
     for( let i=subpolygon ? 1 : 0; i < stationen.length; i++ ) {

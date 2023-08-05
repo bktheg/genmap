@@ -12,6 +12,10 @@ if( !katasterPath ) {
 
 export class CoordinateSystem {
     constructor(public origin:number[], public rotation:number) {}
+
+    isValid():boolean {
+        return this.origin[0] > 0 && this.origin[1] > 0
+    }
 }
 
 export class Flur {
