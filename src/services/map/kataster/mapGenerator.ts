@@ -51,19 +51,12 @@ function calculateAreas(registry:parzellenReader.ParzellenRegistry, points:Map<S
 }
 
 function calculateFluren(net:netReader.NetPoints, points:Map<String,PointDescriptor>):mapWriter.CalculatedFlur[] {
-    // TODO
-    const whitelisted = new Set(["0-Dortmund-22", "0-Dortmund-15", "0-Dortmund-13"]);
-
     const calculatedAreas:mapWriter.CalculatedFlur[] = [];
     for( const p of net.flure ) {
         const result:PointDescriptor[] = []
         
         for( const point of p[1] ) {
             if( point == null ) {
-                continue;
-            }
-            if( point.id.startsWith("0-") && !whitelisted.has(point.id) ) {
-                // skip most global net points, they do not contribute to the shape
                 continue;
             }
             const absolutePoint = points.get(point.id);
