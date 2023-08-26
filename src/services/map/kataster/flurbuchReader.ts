@@ -297,6 +297,10 @@ export function mapType(gemeinde:gemeindeType.GemeindeId, flur:number, art:strin
         }
     }
 
+    if( result.size == 0 ) {
+        return [AreaTyp.Unbekannt]
+    }
+
     return Array.from(result.values());
 }
 

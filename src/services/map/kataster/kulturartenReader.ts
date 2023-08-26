@@ -93,6 +93,10 @@ function mapKartendarstellung(str:string):AreaTyp {
         return AreaTyp.Holzung;
     case 'grube':
         return AreaTyp.Grube;
+    case 'unbekannt':
+        return AreaTyp.Unbekannt
+    case 'huetung':
+        return AreaTyp.Huetung
     default:
         throw new Error('Kann Kulturart nicht laden. Unbekannte Kartendarstellung: '+str);
     }

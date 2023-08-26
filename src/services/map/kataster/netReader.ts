@@ -150,7 +150,7 @@ class FlurId {
 }
 
 class FlurNetSetting {
-    constructor(public ignoreCoordinates:boolean=false, public flip:boolean=false) {}
+    constructor(public ignoreCoordinates:boolean=false, public flip:boolean=false, public utm32n:boolean=false) {}
 }
 
 function readFlurSettings(sheet:XslxUtils.TableLoader, gemeinde:gemeindeType.GemeindeId):Map<number,FlurNetSetting> {
@@ -177,6 +177,7 @@ function readFlurSettings(sheet:XslxUtils.TableLoader, gemeinde:gemeindeType.Gem
             }
             result.get(flur).ignoreCoordinates = sheet.readOptionalBoolean('Ignoriere Koordinaten', i, false)
             result.get(flur).flip = sheet.readOptionalBoolean('Spiegeln', i, false)
+            result.get(flur).utm32n = sheet.readOptionalBoolean('UTM32N', i, false)
         }
     }
     return result
@@ -300,8 +301,13 @@ function calculatePointDescrList(stationen:StationDescriptor[], netPoints:NetPoi
         const next = i < stationen.length-1 ? stationen[i+1] : stationen[0];
 
         if( next.coordX != null && next.coordY != null ) {
-            const proj = localToProj(next.coordX, next.coordY, gemeindeId.getCoordinateSystem());
-            result.push(new AbsolutePointDescriptor(PointType.NET, next.id, null, proj[0], proj[1]));
+            if( flurSettings?.utm32n ) {
+                result.push(new AbsolutePointDescriptor(PointType.NET, next.id, null, next.coordX, next.coordY));
+            }
+            else {
+                const proj = localToProj(next.coordX, next.coordY, gemeindeId.getCoordinateSystem());
+                result.push(new AbsolutePointDescriptor(PointType.NET, next.id, null, proj[0], proj[1]));
+            }
             continue;
         }
         

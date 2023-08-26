@@ -79,7 +79,9 @@ export const enum AreaTyp {
     Weide,
     Holzung,
     Hofraum,
-    Grube
+    Grube,
+    Unbekannt,
+    Huetung
 }
 
 export class Parzelle {

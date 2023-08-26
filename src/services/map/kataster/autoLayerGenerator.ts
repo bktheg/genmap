@@ -100,7 +100,9 @@ function enrichAreaTypes(parzellen:Parzelle[]):void {
         }
 
         if( flurbuchEntry && flurbuchEntry.typ.length == 1 && actualCount <= 1 ) {
-            p.typ = flurbuchEntry.typ[0];
+            if( !p.typ ) {
+                p.typ = flurbuchEntry.typ[0];
+            }
         }
         else if( flurbuchEntry ) {
             // sanity check
@@ -163,6 +165,12 @@ function areaTypesToString(types:Iterable<AreaTyp>):string[] {
                 break;
             case AreaTyp.Grube:
                 result.push("Grube");
+                break;
+            case AreaTyp.Unbekannt:
+                result.push("Unbekannt");
+                break;
+            case AreaTyp.Huetung:
+                result.push("Huetung");
                 break;
             default:
                 throw new Error("Unknown AreaTyp "+t);
