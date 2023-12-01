@@ -1,5 +1,5 @@
 import XLSX from 'xlsx'
-import {PointDescriptor, AbsolutePointDescriptor, RelativePointDescriptor, LengthUnit, MultiWayPointDescriptor, PointType} from '#kataster/pointDescriptors'
+import {PointDescriptor, AbsolutePointDescriptor, RelativePointDescriptor, LengthUnit, MultiWayPointDescriptor, PointType, LocalCoordinateSystem, LocalAbsolutePointDescriptor} from '#kataster/pointDescriptors'
 import * as math2d from 'math2d';
 import * as gemeindeType from '#kataster/gemeindeType';
 import * as XslxUtils from '#utils/xslxUtils'
@@ -22,11 +22,11 @@ function toNumber(text:string):number {
     return parseFloat(text.toString().replace(',', '.'));
 }
 
-function toCoord(sign:string, value:string, settings:FlurNetSetting):number {
-    if( value == null || value == '' || settings.ignoreCoordinates ) {
+function toCoord(sign:string, value:string, ignoreCoordinates:boolean, flip:boolean):number {
+    if( value == null || value == '' || ignoreCoordinates ) {
         return null;
     }
-    return ('-' == sign ? -1 : 1)*toNumber(value)*(settings.flip ? -1 : 1);
+    return ('-' == sign ? -1 : 1)*toNumber(value)*(flip ? -1 : 1);
 }
 
 export class NetPoints {
@@ -150,7 +150,13 @@ class FlurId {
 }
 
 class FlurNetSetting {
-    constructor(public ignoreCoordinates:boolean=false, public flip:boolean=false, public utm32n:boolean=false) {}
+    constructor(
+        public ignoreCoordinates:boolean=false,
+        public flip:boolean=false,
+        public flipX:boolean=false,
+        public utm32n:boolean=false,
+        public skip=false,
+        public localCoords:LocalCoordinateSystem=null) {}
 }
 
 function readFlurSettings(sheet:XslxUtils.TableLoader, gemeinde:gemeindeType.GemeindeId):Map<number,FlurNetSetting> {
@@ -177,7 +183,10 @@ function readFlurSettings(sheet:XslxUtils.TableLoader, gemeinde:gemeindeType.Gem
             }
             result.get(flur).ignoreCoordinates = sheet.readOptionalBoolean('Ignoriere Koordinaten', i, false)
             result.get(flur).flip = sheet.readOptionalBoolean('Spiegeln', i, false)
+            result.get(flur).flipX = sheet.readOptionalBoolean('Spiegeln X', i, false)
             result.get(flur).utm32n = sheet.readOptionalBoolean('UTM32N', i, false)
+            result.get(flur).skip = sheet.readOptionalBoolean('Skip', i, false)
+            result.get(flur).localCoords = sheet.readOptionalBoolean('Lokales Koordinatensystem', i, false) ? new LocalCoordinateSystem(gemeinde, flur) : null
         }
     }
     return result
@@ -226,7 +235,7 @@ function readNetPointsFromExcel(result:NetPoints, file:string, gemeindeId:gemein
             y = readCell(sheet, 'Y', i);    
         }
 
-        if( wGrad == '' && station.toLowerCase().startsWith('flur ') ) {
+        if( wGrad == '' && (station.toLowerCase().startsWith('flur ') || station.toLowerCase().startsWith('fluren ')) ) {
             calculatePointDescrList(list, result, subpolygon, flur, gemeindeId, settings);
             list = [];
             flur = new FlurId(gemeindeId, station);
@@ -258,8 +267,8 @@ function readNetPointsFromExcel(result:NetPoints, file:string, gemeindeId:gemein
             list.push(new StationDescriptor(stationToId(gemeindeId,flur,station), 
                 wGrad != '' ? toNumber(wGrad)+toNumber(wM)/100+toNumber(wS)/10000 : null, 
                 toNumber(distance),
-                toCoord(signX, x, settings),
-                toCoord(signY, y, settings)));
+                toCoord(signX, x, settings.ignoreCoordinates, settings.flip || settings.flipX),
+                toCoord(signY, y, settings.ignoreCoordinates, settings.flip)));
         }
     }
     
@@ -270,7 +279,10 @@ function readNetPointsFromExcel(result:NetPoints, file:string, gemeindeId:gemein
 
 function calculatePointDescrList(stationen:StationDescriptor[], netPoints:NetPoints, subpolygon:boolean, flur:FlurId, gemeindeId:gemeindeType.GemeindeId, flurSettings:FlurNetSetting):void {
     if( stationen.length < 2 ) {
-        return;
+        return
+    }
+    if( flurSettings?.skip ) {
+        return
     }
 
     // Handle subpolygon in reverse order. Subpolygons are not closed. 
@@ -301,7 +313,11 @@ function calculatePointDescrList(stationen:StationDescriptor[], netPoints:NetPoi
         const next = i < stationen.length-1 ? stationen[i+1] : stationen[0];
 
         if( next.coordX != null && next.coordY != null ) {
-            if( flurSettings?.utm32n ) {
+            if( flurSettings?.localCoords ) {
+                const proj = localToProj(next.coordX, next.coordY, gemeindeId.getCoordinateSystem());
+                result.push(new LocalAbsolutePointDescriptor(PointType.NET, next.id, null, proj[0], proj[1], flurSettings.localCoords));
+            }
+            else if( flurSettings?.utm32n ) {
                 result.push(new AbsolutePointDescriptor(PointType.NET, next.id, null, next.coordX, next.coordY));
             }
             else {
@@ -356,10 +372,13 @@ function calculatePointDescrList(stationen:StationDescriptor[], netPoints:NetPoi
 }
 
 function stationToId(gemeindeId:gemeindeType.GemeindeId,flur:FlurId,station:string):string {
-    if( station.startsWith('#') ) {
-        let part = station.substr(1).trim();
+    if( station.includes('♁') ) {
+        return "0-"+gemeindeId.getParent().getName()+"-"+station.replace('♁', '').trim();
+    }
+    else if( station.startsWith('#') ) {
+        let part = station.substring(1).trim();
         if( part.indexOf('(') > -1 ) {
-            part = part.substr(0, part.indexOf('('));
+            part = part.substring(0, part.indexOf('('));
         }
         else if( /^[0-9]+[_\-A-Za-z] [A-Za-z]+$/.test(part) ) {
             const subparts = part.split(" ");

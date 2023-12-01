@@ -18,7 +18,7 @@ export interface PointDescriptor {
 
 export class MultiWayPointDescriptor implements PointDescriptor {
     descriptors:PointDescriptor[];
-    resolved:PointDescriptor;
+    resolved:PointDescriptor = null;
     gemeinde:GemeindeId;
     id:string;
     type:PointType;
@@ -74,6 +74,53 @@ export class AbsolutePointDescriptor implements PointDescriptor {
 
     getPosition():number[] {
         return [this.x, this.y];
+    }
+}
+
+export class LocalCoordinateSystem {
+    absoluteX:number=0
+    absoluteY:number=0
+
+    constructor(
+        public gemeinde:GemeindeId,
+        public flur:number
+    ) {}
+
+    isSolved():boolean {
+        return this.absoluteX != 0 && this.absoluteY != 0;
+    }
+
+    solve(x:number, y:number) {
+        if(this.isSolved()) {
+            throw new Error('Coordinate System already solved')
+        }
+        this.absoluteX = x
+        this.absoluteY = y
+    }
+}
+
+export class LocalAbsolutePointDescriptor implements PointDescriptor {
+    id:string;
+    gemeinde:GemeindeId;
+    type:PointType;
+
+    constructor(type:PointType, id:string, gemeinde:GemeindeId, public x:number, public y:number, public localCoordSys:LocalCoordinateSystem) {
+        this.type = type;
+        this.id = id;
+        this.x = x;
+        this.y = y;
+        this.gemeinde = gemeinde;
+    }
+
+    isAbsolute():boolean {
+        return this.localCoordSys.isSolved();
+    }
+
+    getPosition():number[] {
+        if( !this.isAbsolute() ) {
+            return null
+        }
+        return [this.x+this.localCoordSys.absoluteX, this.y+this.localCoordSys.absoluteY];
     }
 }
 

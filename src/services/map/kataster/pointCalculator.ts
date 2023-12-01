@@ -1,5 +1,5 @@
 import { consola } from 'consola';
-import {PointDescriptor, AbsolutePointDescriptor, AliasPointDescriptor, AveragePointDescriptor, RelativePointDescriptor, IntersectPointDescriptor, LengthUnit, MultiWayPointDescriptor, PointType} from '#kataster/pointDescriptors'
+import {PointDescriptor, AbsolutePointDescriptor, AliasPointDescriptor, AveragePointDescriptor, RelativePointDescriptor, IntersectPointDescriptor, LengthUnit, MultiWayPointDescriptor, PointType, LocalAbsolutePointDescriptor} from '#kataster/pointDescriptors'
 import * as m2d from 'math2d';
 
 export function calculatePoint(p:PointDescriptor, points:Map<string,PointDescriptor>, strict:boolean):PointDescriptor {
@@ -18,13 +18,20 @@ export function calculatePoint(p:PointDescriptor, points:Map<string,PointDescrip
     else if( p instanceof MultiWayPointDescriptor ) {
         return calculateMultiWayPoint(<MultiWayPointDescriptor>p, points, strict);
     }
+    else if( p instanceof LocalAbsolutePointDescriptor ) {
+        return calculateLocalAbsolutePoint(<LocalAbsolutePointDescriptor>p, points);
+    }
     else if( p instanceof AbsolutePointDescriptor ) {
         return p;
     }
     throw "Unknown point descriptor for "+p.id;
 }
 
-function calculateMultiWayPoint(mp:MultiWayPointDescriptor, points:Map<string,PointDescriptor>, strict:boolean) {
+function calculateLocalAbsolutePoint(lp:LocalAbsolutePointDescriptor, points:Map<string,PointDescriptor>):PointDescriptor {
+    return lp;
+}
+
+function calculateMultiWayPoint(mp:MultiWayPointDescriptor, points:Map<string,PointDescriptor>, strict:boolean):PointDescriptor {
     if( mp.isAbsolute() ) {
         return mp;
     }
@@ -64,6 +71,29 @@ function calculateMultiWayPoint(mp:MultiWayPointDescriptor, points:Map<string,Po
 
     const resolved:PointDescriptor[] = [];
     for( const p of mp.descriptors ) {
+        if( p instanceof LocalAbsolutePointDescriptor ) {
+            const lp = <LocalAbsolutePointDescriptor>p;
+            if( !lp.isAbsolute() ) {
+                const absPoint = mp.descriptors.find(p => p.isAbsolute())
+                if(absPoint) {
+                    console.info("Verbinde lokales Koordinatensystem", lp.localCoordSys.gemeinde.getId(),"-",lp.localCoordSys.flur, "via Punkt", absPoint.id)
+                    lp.localCoordSys.solve(absPoint.getPosition()[0]-lp.x, absPoint.getPosition()[1]-lp.y)
+                }
+            }
+
+            if( lp.isAbsolute() ) {
+                const ap = new AbsolutePointDescriptor(lp.type, lp.id, lp.gemeinde, lp.getPosition()[0], lp.getPosition()[1])
+                if( strict ) {
+                    resolved.push(ap);
+                }
+                else {
+                    mp.resolve(ap);
+                    return mp;
+                }
+            }
+            continue
+        }
+       
         const resolvedP = calculatePoint(p, points, strict);
         if( resolvedP != null ) {
             if( strict ) {
@@ -75,6 +105,26 @@ function calculateMultiWayPoint(mp:MultiWayPointDescriptor, points:Map<string,Po
             }
         }
     }
+
+    for( let i=0; i < resolved.length; i++ ) {
+        const d1 = resolved[i];
+        
+        for( let j=i; j < resolved.length; j++ ) {
+            const d2 = resolved[j];
+            
+            if( d1.isAbsolute() && d2.isAbsolute() ) {
+                const a1 = d1.getPosition();
+                const a2 = d2.getPosition();
+                const delta = 20;
+
+                if( Math.abs(a1[0]-a2[0]) > delta || Math.abs(a1[1]-a2[1]) > delta ) {
+                    consola.warn("Inkonsistenter absoluter Vermessungspunkt "+mp.id+": Delta "+Math.round(Math.sqrt(Math.pow(a1[0]-a2[0],2)+Math.pow(a1[1]-a2[1],2))));
+                    writeDebug = true;
+                }
+            }
+        }
+    }
+    
     if( writeDebug ) {
         let counter = 1;
         for(const p of resolved ) {
@@ -82,7 +132,7 @@ function calculateMultiWayPoint(mp:MultiWayPointDescriptor, points:Map<string,Po
             points.set(debugP.id, debugP);
         }
     }
-
+    
     if( strict && resolved.length == mp.descriptors.length ) {
         mp.resolve(avg(mp.type, mp.id, resolved));
         return mp;
@@ -102,7 +152,7 @@ function avg(type:PointType, id:string, points:PointDescriptor[]):PointDescripto
     return new AbsolutePointDescriptor(type, id, points[0].gemeinde, x/points.length, y/points.length);
 }
 
-function calculateAveragePoint(ap:AveragePointDescriptor, points:Map<string,PointDescriptor>) {
+function calculateAveragePoint(ap:AveragePointDescriptor, points:Map<string,PointDescriptor>):PointDescriptor {
     let sumX = 0;
     let sumY = 0;
     for( const p of ap.p ) {

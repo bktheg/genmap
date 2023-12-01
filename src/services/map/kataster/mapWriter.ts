@@ -430,6 +430,10 @@ export async function writePoints(points:PointDescriptor[]) {
         values.push(pointType(points[i].type));
         values.push(points[i].gemeinde != null ? points[i].gemeinde.getId() : null);
         const pos = points[i].getPosition();
+        if( pos == null ) {
+            consola.error("Kann Punkt ", points[i].id, " nicht schreiben. Keine Koordinaten vorhanden.")
+            throw new Error("ID of point missing: "+points[i].id)
+        }
         values.push(pos[0]);
         values.push(pos[1]);
     }

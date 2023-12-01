@@ -121,10 +121,10 @@ async function doWritePoints(points:Map<string,PointDescriptor>, onlyGemeinde:ge
         if( onlyNetPoints && p.type != PointType.NET && p.type != PointType.NET_MERIDIAN && p.type != PointType.HELPER ) {
             continue
         }
-        if( p instanceof AbsolutePointDescriptor || p instanceof MultiWayPointDescriptor) {
+        if( p.isAbsolute()) {
             toBeWritten.push(p);
         }
-        else if( !p.isAbsolute() ) {
+        else {
             consola.warn(`Punkt ${p.id} wurde nicht berechnet`);
         }
     }
@@ -135,7 +135,10 @@ async function doWritePoints(points:Map<string,PointDescriptor>, onlyGemeinde:ge
 function calculateNet(net:netReader.NetPoints):Map<string,PointDescriptor> {
     const points:Map<string, PointDescriptor> = new Map(net.points);
     if( !calculatePoints(points, true) ) {
-        calculatePoints(points, false);
+        consola.warn("Exakte Berechnung des Netzes nicht möglich")
+        if(!calculatePoints(points, false)) {
+            consola.error("Konnte Netzpunkte nicht vollständig berechnen")
+        }
     }
 
     return points;
@@ -221,7 +224,9 @@ export async function generateNet() {
     const netPoints = calculateNet(net);
 
     consola.start("Berechne...");
-    calculatePoints(netPoints, false);
+    if(!calculatePoints(netPoints, false)) {
+        consola.error("Konnte Punkte nicht vollständig berechnen")
+    }
 
     await doWritePoints(netPoints, null, true);
     consola.success(netPoints.size, "Punkte geschrieben")
@@ -251,7 +256,9 @@ export async function generateMap(gemeinde:gemeindeType.GemeindeId, writeAllPoin
 
     consola.start("Berechne Punkte...");
 
-    calculatePoints(points, false);
+    if(!calculatePoints(points, false)) {
+        consola.error("Konnte Punkte nicht vollständig berechnen")
+    }
 
     consola.start(`Schreibe ${writeAllPoints ? 'alle ' : ''}Punkte...`);
 
@@ -319,6 +326,7 @@ function calculatePoints(points:Map<string,PointDescriptor>, strict:boolean):boo
                 if( newP != null ) {
                     changed = true;
                     points.set(newP.id, newP);
+                    needsCalculation = needsCalculation || !newP.isAbsolute()
                 }
                 else {
                     needsCalculation = true;
