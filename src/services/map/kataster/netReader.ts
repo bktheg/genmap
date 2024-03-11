@@ -154,9 +154,11 @@ class FlurNetSetting {
         public ignoreCoordinates:boolean=false,
         public flip:boolean=false,
         public flipX:boolean=false,
+        public flipY:boolean=false,
         public utm32n:boolean=false,
         public skip=false,
-        public localCoords:LocalCoordinateSystem=null) {}
+        public localCoords:LocalCoordinateSystem=null,
+        public suffix="") {}
 }
 
 function readFlurSettings(sheet:XslxUtils.TableLoader, gemeinde:gemeindeType.GemeindeId):Map<number,FlurNetSetting> {
@@ -184,9 +186,11 @@ function readFlurSettings(sheet:XslxUtils.TableLoader, gemeinde:gemeindeType.Gem
             result.get(flur).ignoreCoordinates = sheet.readOptionalBoolean('Ignoriere Koordinaten', i, false)
             result.get(flur).flip = sheet.readOptionalBoolean('Spiegeln', i, false)
             result.get(flur).flipX = sheet.readOptionalBoolean('Spiegeln X', i, false)
+            result.get(flur).flipY = sheet.readOptionalBoolean('Spiegeln Y', i, false)
             result.get(flur).utm32n = sheet.readOptionalBoolean('UTM32N', i, false)
             result.get(flur).skip = sheet.readOptionalBoolean('Skip', i, false)
             result.get(flur).localCoords = sheet.readOptionalBoolean('Lokales Koordinatensystem', i, false) ? new LocalCoordinateSystem(gemeinde, flur) : null
+            result.get(flur).suffix = sheet.readOptionalString('Suffix', i, '');
         }
     }
     return result
@@ -264,11 +268,11 @@ function readNetPointsFromExcel(result:NetPoints, file:string, gemeindeId:gemein
             subpolygon = true;
         }
         else {
-            list.push(new StationDescriptor(stationToId(gemeindeId,flur,station), 
+            list.push(new StationDescriptor(stationToId(gemeindeId,flur,station+(flurSettings.get(flur?.getFlurNr())?.suffix||'')), 
                 wGrad != '' ? toNumber(wGrad)+toNumber(wM)/100+toNumber(wS)/10000 : null, 
                 toNumber(distance),
                 toCoord(signX, x, settings.ignoreCoordinates, settings.flip || settings.flipX),
-                toCoord(signY, y, settings.ignoreCoordinates, settings.flip)));
+                toCoord(signY, y, settings.ignoreCoordinates, settings.flip || settings.flipY)));
         }
     }
     

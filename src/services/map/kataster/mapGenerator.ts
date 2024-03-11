@@ -133,7 +133,10 @@ async function doWritePoints(points:Map<string,PointDescriptor>, onlyGemeinde:ge
 }
 
 function calculateNet(net:netReader.NetPoints):Map<string,PointDescriptor> {
-    const points:Map<string, PointDescriptor> = new Map(net.points);
+    const points:Map<string, PointDescriptor> = new Map(net.points)
+    
+    solveLocalCoordinateSystems(points)
+
     if( !calculatePoints(points, true) ) {
         consola.warn("Exakte Berechnung des Netzes nicht möglich")
         if(!calculatePoints(points, false)) {
@@ -311,6 +314,19 @@ export async function generateMap(gemeinde:gemeindeType.GemeindeId, writeAllPoin
         await generateMetadata();
     }
 }
+
+function solveLocalCoordinateSystems(points:Map<string,PointDescriptor>):void {
+    let changed:boolean;
+
+    do {
+        changed = false
+
+        for( const p of points.values() ) {
+            changed = changed || pointCalculator.solveLocalCoordinateSystems(p);
+        }
+    } while(changed)
+}
+
 
 function calculatePoints(points:Map<string,PointDescriptor>, strict:boolean):boolean {
     let changed:boolean;

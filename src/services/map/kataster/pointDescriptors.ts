@@ -78,6 +78,7 @@ export class AbsolutePointDescriptor implements PointDescriptor {
 }
 
 export class LocalCoordinateSystem {
+    private coordinates:Map<string,number[]> = new Map()
     absoluteX:number=0
     absoluteY:number=0
 
@@ -90,12 +91,15 @@ export class LocalCoordinateSystem {
         return this.absoluteX != 0 && this.absoluteY != 0;
     }
 
-    solve(x:number, y:number) {
-        if(this.isSolved()) {
-            throw new Error('Coordinate System already solved')
+    solve(pointId:string, x:number, y:number):boolean {
+        if( this.coordinates.has(pointId) ) {
+            return false
         }
-        this.absoluteX = x
-        this.absoluteY = y
+        this.coordinates.set(pointId, [x,y])
+
+        this.absoluteX = [...this.coordinates.values()].map(c => c[0]).reduce((p,v) => p+v) / this.coordinates.size
+        this.absoluteY = [...this.coordinates.values()].map(c => c[1]).reduce((p,v) => p+v) / this.coordinates.size
+        return true
     }
 }
 

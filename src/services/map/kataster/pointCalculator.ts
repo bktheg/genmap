@@ -2,6 +2,13 @@ import { consola } from 'consola';
 import {PointDescriptor, AbsolutePointDescriptor, AliasPointDescriptor, AveragePointDescriptor, RelativePointDescriptor, IntersectPointDescriptor, LengthUnit, MultiWayPointDescriptor, PointType, LocalAbsolutePointDescriptor} from '#kataster/pointDescriptors'
 import * as m2d from 'math2d';
 
+export function solveLocalCoordinateSystems(p:PointDescriptor):boolean {
+    if( p instanceof MultiWayPointDescriptor ) {
+        return solveLocalCoordinateSystemFromMultiWayPoint(<MultiWayPointDescriptor>p);
+    }
+    return false
+}
+
 export function calculatePoint(p:PointDescriptor, points:Map<string,PointDescriptor>, strict:boolean):PointDescriptor {
     if( p instanceof RelativePointDescriptor ) {
         return calculateRelativePoint(<RelativePointDescriptor>p, points);
@@ -30,6 +37,26 @@ export function calculatePoint(p:PointDescriptor, points:Map<string,PointDescrip
 function calculateLocalAbsolutePoint(lp:LocalAbsolutePointDescriptor, points:Map<string,PointDescriptor>):PointDescriptor {
     return lp;
 }
+
+function solveLocalCoordinateSystemFromMultiWayPoint(mp:MultiWayPointDescriptor):boolean {
+    const absPoint = mp.descriptors.find(p => p.isAbsolute())
+    if( !absPoint ) {
+        return false
+    }
+
+    let changed = false
+    for( const p of mp.descriptors ) {
+        if( p instanceof LocalAbsolutePointDescriptor ) {
+            const lp = <LocalAbsolutePointDescriptor>p;
+
+            //consola.info("Verbinde lokales Koordinatensystem", lp.localCoordSys.gemeinde.getId(),"-",lp.localCoordSys.flur, "via Punkt", absPoint.id)
+            changed = changed || lp.localCoordSys.solve(mp.id, absPoint.getPosition()[0]-lp.x, absPoint.getPosition()[1]-lp.y)
+        }
+    }
+
+    return changed
+}
+
 
 function calculateMultiWayPoint(mp:MultiWayPointDescriptor, points:Map<string,PointDescriptor>, strict:boolean):PointDescriptor {
     if( mp.isAbsolute() ) {
@@ -70,30 +97,7 @@ function calculateMultiWayPoint(mp:MultiWayPointDescriptor, points:Map<string,Po
     }
 
     const resolved:PointDescriptor[] = [];
-    for( const p of mp.descriptors ) {
-        if( p instanceof LocalAbsolutePointDescriptor ) {
-            const lp = <LocalAbsolutePointDescriptor>p;
-            if( !lp.isAbsolute() ) {
-                const absPoint = mp.descriptors.find(p => p.isAbsolute())
-                if(absPoint) {
-                    console.info("Verbinde lokales Koordinatensystem", lp.localCoordSys.gemeinde.getId(),"-",lp.localCoordSys.flur, "via Punkt", absPoint.id)
-                    lp.localCoordSys.solve(absPoint.getPosition()[0]-lp.x, absPoint.getPosition()[1]-lp.y)
-                }
-            }
-
-            if( lp.isAbsolute() ) {
-                const ap = new AbsolutePointDescriptor(lp.type, lp.id, lp.gemeinde, lp.getPosition()[0], lp.getPosition()[1])
-                if( strict ) {
-                    resolved.push(ap);
-                }
-                else {
-                    mp.resolve(ap);
-                    return mp;
-                }
-            }
-            continue
-        }
-       
+    for( const p of mp.descriptors ) {      
         const resolvedP = calculatePoint(p, points, strict);
         if( resolvedP != null ) {
             if( strict ) {
