@@ -157,6 +157,8 @@ export class GemeindeId {
         private quelleGueterverzeichnis:string, 
         private alternateNames:string[]=[],
         private origin:number[],
+        private rotation:number,
+        private pointPerGemeinde:boolean,
         public vermessungsraster:number) {
     }
 
@@ -243,8 +245,16 @@ export class GemeindeId {
         return this.origin != null ? this.origin : this.parent.getCoordinateSystem().origin;
     }
 
+    getRotation():number {
+        return this.rotation != null ? this.rotation : this.parent.getCoordinateSystem().rotation
+    }
+
     getCoordinateSystem():CoordinateSystem {
-        return new CoordinateSystem(this.getOrigin(), this.parent.getCoordinateSystem().rotation)
+        return new CoordinateSystem(this.getOrigin(), this.getRotation())
+    }
+
+    isPointPerGemeinde():boolean {
+        return this.pointPerGemeinde || this.parent.isPointPerGemeinde();
     }
 }
 
@@ -431,6 +441,8 @@ function loadGemeindenSheet(workbook:XLSX.WorkBook):void {
         const exportReinertrag = sheetGemeinden.readString('Export Reinertrag',i).toLowerCase() == 'x'
         const npX = sheetGemeinden.readOptionalNumber('NP X',i)
         const npY = sheetGemeinden.readOptionalNumber('NP Y',i)
+        const punkteProGemeinde = sheetGemeinden.readOptionalBoolean('Punkte pro Gemeinde',i,false)
+        const rotation = sheetGemeinden.readOptionalNumber('Net Rotation',i)
         const vermessungsraster = sheetGemeinden.readOptionalNumber('Vermessungsraster',i)
 
         if( GEMEINDEN.find(g => g.getId() == id) ) {
@@ -451,6 +463,8 @@ function loadGemeindenSheet(workbook:XLSX.WorkBook):void {
             quelleGueterverzeichnis, 
             altNames, 
             npX != null && npY != null ? [npX, npY] : null,
+            rotation,
+            punkteProGemeinde,
             vermessungsraster);
         bgmstr.addGemeinde(gemeinde);
         gemeinde.setExportReinertrag(exportReinertrag);

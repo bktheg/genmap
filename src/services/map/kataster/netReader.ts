@@ -231,7 +231,7 @@ function readNetPointsFromExcel(result:NetPoints, file:string, gemeindeId:gemein
         }
         skipped = 0;
 
-        if( !signX && !signY ) {
+        if( !x && !y ) {
             // Korrigierte Koordinaten liegen nicht vor -> Zusammengestellte Koordinaten probieren
             signX = readCell(sheet, 'U', i);
             x = readCell(sheet, 'V', i);
@@ -250,7 +250,7 @@ function readNetPointsFromExcel(result:NetPoints, file:string, gemeindeId:gemein
             }
             subpolygon = false;
         }
-        else if( wGrad == '' && station.toLowerCase() == 'koordinaten' ) {
+        else if( wGrad == '' && (station.toLowerCase() == 'koordinaten' || station.toLowerCase().startsWith('umring der gemeinde')) ) {
             calculatePointDescrList(list, result, subpolygon, flur, gemeindeId, flurSettings.get(flur?.getFlurNr()));
             list = [];
             flur = null;
@@ -391,33 +391,33 @@ function stationToId(gemeindeId:gemeindeType.GemeindeId,flur:FlurId,station:stri
         return "0-"+gemeindeId.getParent().getName()+"-"+part.trim();
     }
 
-    const parts = station.split(' ');
+    const parts = station.replace(/\([\w ]+\)/, '').split(' ');
     let explicitFlur = false;
 
-    if( parts.length > 1 && /[XVI]+/.test(parts[1]) ) {
-        // Nr FlurNr
-        parts[1] = romanToInt(parts[1]).toPrecision();
-        explicitFlur = true;
-    }
-    else if( parts.length == 2 ) {
-        // Nr GemeindeId
-        parts.push(parts[1]);
-        parts[1] = "1";
-    }
-    else if( parts.length == 1 ) {
-        // Nr
-        parts.push(flur.getFlurNr().toString());
-    
-    }
-
     try {
+        if( parts.length > 1 && /[XVI]+/.test(parts[1]) ) {
+            // Nr FlurNr
+            parts[1] = romanToInt(parts[1]).toPrecision();
+            explicitFlur = true;
+        }
+        else if( parts.length == 2 ) {
+            // Nr GemeindeId
+            parts.push(parts[1]);
+            parts[1] = "1";
+        }
+        else if( parts.length == 1 && flur != null ) {
+            // Nr
+            parts.push(flur.getFlurNr().toString());
+        
+        }
+
         const gemeinde = parts.length > 2 ? expandGemeindeIdStr(parts[2]) : gemeindeId;
         const gid = gemeinde.getId();
 
-        return (gid+'-')+(gemeinde.getParent().isPointPerGemeinde() && !explicitFlur ? "" : parts[1]+'-')+parts[0];
+        return (gid+'-')+(gemeinde.isPointPerGemeinde() && !explicitFlur && parts.length > 1 ? "" : parts[1]+'-')+parts[0];
     }
     catch(ex) {
-        throw new Error("Failed to generate net point id for "+gemeindeId.getId()+" flur "+flur.getFlurNr()+" point "+station+": "+ex)
+        throw new Error("Failed to generate net point id for "+gemeindeId.getId()+" flur "+(flur != null ? flur.getFlurNr() : 'null')+" point "+station+": "+ex)
     }
 }
 
