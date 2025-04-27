@@ -391,7 +391,7 @@ function stationToId(gemeindeId:gemeindeType.GemeindeId,flur:FlurId,station:stri
         return "0-"+gemeindeId.getParent().getName()+"-"+part.trim();
     }
 
-    const parts = station.replace(/\([\w ]+\)/, '').split(' ');
+    const parts = station.replace(/\([\w ]+\)/, '').trim().split(' ');
     let explicitFlur = false;
 
     try {
