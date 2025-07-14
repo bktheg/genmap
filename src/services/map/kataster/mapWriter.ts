@@ -701,6 +701,10 @@ export async function generateAdminAreas() {
         reader.close()
     }
 
+    if(grenzen.size <= 0) {
+        return
+    }
+
     let query = "INSERT INTO kataster_gen_admin (id,type,name,the_geom) VALUES ";
     let values = [];
     let idx = 1;

@@ -35,16 +35,17 @@ Das Katasterverzeichnis hat folgende Verzeichnisstruktur:
 ### Installation
 
 Benötigte Software:
-* NodeJS 16
+* NodeJS (unter Windows native tools/C++)
 * PostGIS
 * Ein GIS zum Digitalisieren der Urkarten, z.B. QGIS
 
 Installationsschritte:
-* `npm -i -g typescript`
+* `npm install -g typescript`
 * `npm ci`
 * Datei ".env.example" nach ".env" kopieren und den Inhalt anpassen
 ** Die SpatiaLite-Datenbank wird automatisch unter dem konfigurierten Pfad angelegt wenn das Tool das erste Mal auf diese zugreift
 ** Die Tabellen in der Postgis-Datenbank werden automatisch angelegt. Es genügt eine leeres, existierendes Schema zu konfigurieren. Das Tool benötigt dementsprechend auch die Rechte Tabellen anzulegen/zu ändern/zu löschen
+* `npm run build`
 * `node ./dist/cli.js map`
 * Die Layer der SpatiaLite-Datenbank und der Postgis-Datenbank im GIS einrichten
 

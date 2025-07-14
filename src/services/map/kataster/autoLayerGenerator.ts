@@ -172,6 +172,9 @@ function areaTypesToString(types:Iterable<AreaTyp>):string[] {
             case AreaTyp.Huetung:
                 result.push("Huetung");
                 break;
+            case AreaTyp.Bruecke:
+                result.push("Bruecke");
+                break; 
             default:
                 throw new Error("Unknown AreaTyp "+t);
         }
