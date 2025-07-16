@@ -279,7 +279,7 @@ export async function generateAutoLayer(gemeinde:gemeindeType.GemeindeId) {
         }
 
         const nr = p.nr.replace('/', '_')
-        const filename = basePath+"/"+p.gemeinde.getId()+"/"+p.flur+"/"+p.nr+".json"
+        const filename = basePath+"/"+p.gemeinde.getId()+"/"+p.flur+"/"+nr+".json"
         const json = JSON.stringify(p.export(), null, 4)
 
         if( fs.existsSync(filename) && json == fs.readFileSync(filename).toString() ) {

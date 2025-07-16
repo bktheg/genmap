@@ -15,6 +15,7 @@ export class Parzelle {
 
     export():JsonParzelle {
         return {
+            nr:this.nr,
             area:this.area,
             building:this.building,
             help:null,

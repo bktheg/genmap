@@ -22,6 +22,7 @@ export interface JsonArea {
 }
 
 export interface JsonParzelle {
+    nr:string;
     area:JsonArea[];
     building:JsonBuilding[];
     help:any[];
@@ -355,7 +356,7 @@ async function readParzelle(file:string,gemeinde:gemeindeType.GemeindeId, flur:s
     let rawdata = fs.readFileSync(file, 'utf-8');
     let descriptor = <JsonParzelle>JSON.parse(rawdata);
 
-    const result = new Parzelle(gemeinde, parseInt(flur), parzelle);
+    const result = new Parzelle(gemeinde, parseInt(flur), descriptor.nr || parzelle);
     result.typ = descriptor.typ || AreaTyp.Default;
 
     parseJsonHelp(result, descriptor.help);
