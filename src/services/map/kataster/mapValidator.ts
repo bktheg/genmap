@@ -538,7 +538,7 @@ function validateFlurbuchSummen(gemeinde:gemeindeType.GemeindeId):ValidationResu
             }
 
             if( actualReinertrag.getTotalPfennig() > 0 && !actualReinertrag.equals(summe.reinertrag) ) {
-                result.logMessage(gemeinde, flur.getId(), null, `Summendifferenz Reinertrag Seite ${summe.page}: Soll ${summe.reinertrag.toString()} Ist ${actualReinertrag.toString()}`);
+                result.logMessage(gemeinde, flur.getId(), null, `Summendifferenz Reinertrag Seite ${summe.page}: Soll ${summe.reinertrag?.toString()} Ist ${actualReinertrag.toString()}`);
             }
         }
 
