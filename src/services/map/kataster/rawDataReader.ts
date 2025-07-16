@@ -31,6 +31,10 @@ interface RawDataReader {
 function convertPolyToPosArray(parzelle:Parzelle, geojson:GeoJsonGeometry, centrX:number, centrY:number):any[] {
     const result = new Array<any>();
 
+    if(geojson == null) {
+        return result
+    } 
+
     for( const coords of geojson.coordinates ) {
         const ringResult = new Array<any>();
         const ring = coords.slice(0, -1);
@@ -137,6 +141,40 @@ class SpatialiteRawDataReader implements RawDataReader {
         })
     }
 
+    async prepareSrid() {
+        return new Promise<void>((resolve, reject) => {
+            this.db.spatialite((err) => {
+                this.db.all(`SELECT * FROM spatial_ref_sys WHERE srid=7416`, (err, rows) => {
+                    if( err ) {
+                        consola.error("Fehler beim Lesen der Spatial Reference Systems in SpatiaLite", this.file, ":", err)
+                        reject(err)
+                        return
+                    }
+
+
+                    if( rows.length == 0 ) {
+                        this.db.exec(`
+                            INSERT INTO spatial_ref_sys 
+                            (srid,auth_name,auth_srid,ref_sys_name,proj4text,srtext) 
+                            VALUES 
+                            (7416,'epsg',7416,'ETRS89 / UTM zone 32N','+proj=utm +zone=32 +ellps=GRS80 +units=m +vunits=m +no_defs +type=crs','COMPD_CS["ETRS89 / UTM zone 32N + DVR90 height",PROJCS["ETRS89 / UTM zone 32N",GEOGCS["ETRS89",DATUM["European_Terrestrial_Reference_System_1989",SPHEROID["GRS 1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],AUTHORITY["EPSG","6258"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4258"]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",9],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["EPSG","25832"]],VERT_CS["DVR90 height",VERT_DATUM["Dansk Vertikal Reference 1990 ensemble",2005,AUTHORITY["EPSG","1371"]],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Gravity-related height",UP],AUTHORITY["EPSG","5799"]],AUTHORITY["EPSG","7416"]]')
+                        `, (err) => {
+                                if( err ) {
+                                    consola.error("Fehler beim Erstellen der SpatiaLite-Datenbank unter ", this.file, ":", err)
+                                    reject(err)
+                                    return
+                                }
+                                resolve()
+                            })
+                    }
+                    else {
+                        resolve()
+                    }
+                })
+            })
+        })
+    }
+
     async readKatasterParzellen(parzellen:ParzellenRegistry, gemeinde:gemeindeType.GemeindeId):Promise<void> {
         return new Promise<void>((resolve, reject) => {
             this.db.spatialite((err) => {
@@ -162,6 +200,10 @@ class SpatialiteRawDataReader implements RawDataReader {
                     for( const r of rows ) {
                         try {
                             const geojson = JSON.parse(r.geometry)
+                            if( geojson == null ) {
+                                consola.warn("Gebaeude ohne Geometrie: "+r.gemeinde+"-"+r.flur+"-"+r.nr);
+                                continue;
+                            }
                             const parzelle = parzellen.getOrCreate(gemeindeType.forId(r.gemeinde), r.flur, r.nr);
                             const area = {type:(r.typ || AreaTyp.Default) as number,points:convertPolyToPosArray(parzelle, geojson, r.x, r.y),rawtype:r.rawtype}
                             
@@ -379,6 +421,9 @@ export async function createRawDataReader() {
         consola.warn("Keine SpatiaLite-Datenbank unter", file, "gefunden. Erstelle neue SpatiaLite-Datenbank...")
         await new SpatialiteRawDataReader(file).createDatabase()
     }
+
     consola.debug("Lese Daten aus SpatiaLite", file)
-    return new SpatialiteRawDataReader(file)
+    const db = new SpatialiteRawDataReader(file)
+    await db.prepareSrid()
+    return db
 }
