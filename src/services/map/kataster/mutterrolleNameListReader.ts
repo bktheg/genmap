@@ -16,7 +16,9 @@ export enum MutterrolleTaxeKulturart {
     Hofraum,
     Holzung,
     Teich,
-    Steinbruch
+    Steinbruch,
+    Heide,
+    Oede
 }
 
 class MutterrolleTaxeEntry {
@@ -306,6 +308,7 @@ function mapKulturartTaxe(kulturart:string):MutterrolleTaxeKulturart {
     case 'hofraum':
     case 'hofräume':
     case 'haus et hofräume':
+    case 'gewöhnliche wohnhäuser':
         return MutterrolleTaxeKulturart.Hofraum;
     case 'teich':
     case 'teiche':
@@ -318,6 +321,11 @@ function mapKulturartTaxe(kulturart:string):MutterrolleTaxeKulturart {
     case 'steinbruch':
     case 'steinbrüche':
         return MutterrolleTaxeKulturart.Steinbruch;
+    case 'heide':
+    case 'heiden':
+        return MutterrolleTaxeKulturart.Heide;
+    case 'lachen, oeden, etc.':
+        return MutterrolleTaxeKulturart.Oede;
     }
     throw new Error('Unbekannter Kulturart Taxen-Typ '+kulturart);
 }
