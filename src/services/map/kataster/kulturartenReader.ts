@@ -99,6 +99,8 @@ function mapKartendarstellung(str:string):AreaTyp {
         return AreaTyp.Huetung
     case 'bruecke':
         return AreaTyp.Bruecke
+    case 'heide':
+        return AreaTyp.Heide
     default:
         throw new Error('Kann Kulturart nicht laden. Unbekannte Kartendarstellung: '+str);
     }

@@ -83,7 +83,8 @@ export const enum AreaTyp {
     Grube,
     Unbekannt,
     Huetung,
-    Bruecke = 13
+    Bruecke = 13,
+    Heide = 14
 }
 
 export class Parzelle {
