@@ -245,8 +245,8 @@ export async function writeMetadataBezeichnungenJson(bezeichnungen:mapReader.Bez
     }
 
     for( const s of strassen ) {
-        // Ignore streets, keep water/names
-        if( s.type == null ) {
+        // Ignore streets and field roads, keep water/names
+        if( s.type == null || s.type == 3 ) {
             continue;
         }
         if( (s.flur != null && !s.gemeinde.getFlur(s.flur).isDone()) || s.location[0] == 0 || s.location[1] == 0 ) {
