@@ -122,7 +122,7 @@ class SpatialiteRawDataReader implements RawDataReader {
                     SELECT AddGeometryColumn("kataster_flurstuecke", "geometry", 4326, "POLYGON", 2);
                     SELECT CreateSpatialIndex("kataster_flurstuecke", "geometry");
 
-                    CREATE TABLE "kataster_gebaeude"("ogc_fid" INTEGER PRIMARY KEY,'flur' BIGINT, 'zaehler' BIGINT, 'nenner' BIGINT, 'hnr' VARCHAR, 'strasse' VARCHAR, 'nebengeb' INTEGER, 'rotlabel' INTEGER, 'bezeichnung' VARCHAR, 'gemeinde' VARCHAR, 'nr' VARCHAR(10), 'katasternr' VARCHAR(6));
+                    CREATE TABLE "kataster_gebaeude"("ogc_fid" INTEGER PRIMARY KEY,'flur' BIGINT, 'zaehler' BIGINT, 'nenner' BIGINT, 'hnr' VARCHAR, 'strasse' VARCHAR, 'nebengeb' INTEGER, 'rotlabel' INTEGER, 'bezeichnung' VARCHAR, 'gemeinde' VARCHAR, 'nr' VARCHAR(10), 'katasternr' VARCHAR(6), 'typ' VARCHAR);
                     SELECT AddGeometryColumn("kataster_gebaeude", "geometry", 4326, "POLYGON", 2);
                     SELECT CreateSpatialIndex("kataster_gebaeude", "geometry");
 
@@ -229,7 +229,7 @@ class SpatialiteRawDataReader implements RawDataReader {
                     return
                 }
 
-                const query = `SELECT gemeinde,flur,nr,bezeichnung,hnr,
+                const query = `SELECT gemeinde,flur,nr,bezeichnung,typ,hnr,
                     ST_X(ST_Transform(st_centroid(GEOMETRY),${this.SRS})) as x,
                     ST_Y(ST_Transform(st_centroid(GEOMETRY),${this.SRS})) as y,
                     AsGeoJSON(ST_Transform(GEOMETRY, ${this.SRS}),6) as geometry 
@@ -253,9 +253,10 @@ class SpatialiteRawDataReader implements RawDataReader {
                             const parzelle = parzellen.getOrCreate(gemeindeType.forId(r.gemeinde), r.flur, nr);
                             const building = {
                                 bezeichnung:r.bezeichnung || undefined,
+                                typ:r.typ || undefined,
                                 hnr:r.hnr || undefined,
                                 points:convertPolyToPosArray(parzelle, JSON.parse(geojson), r.x, r.y)
-                            };
+                            } as JsonBuilding;
                             
                             parzelle.building.push(building);
                         }

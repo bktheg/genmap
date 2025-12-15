@@ -39,7 +39,7 @@ export class CalculatedBuilding {
     validTill:Zeit;
     fortschreibung:string
 
-    constructor(public gemeinde:gemeindeType.GemeindeId, flur:number, parzelle:string, public bezeichnung:string, public hnr:string) {
+    constructor(public gemeinde:gemeindeType.GemeindeId, flur:number, parzelle:string, public bezeichnung:string, public hnr:string, public typ:string) {
         this.flur = flur;
         this.parzelle = parzelle;
         this.points = [];
@@ -196,6 +196,7 @@ export async function cleanUp() {
             yearFrom SMALLINT,
             yearTill SMALLINT,
             bezeichnung VARCHAR(32),
+            typ VARCHAR(32),
             hnr VARCHAR(16),
             fortschreibung VARCHAR(255)
           );`
@@ -292,7 +293,7 @@ export async function cleanUp() {
 
     await database.getClient().query({
         text: `CREATE OR REPLACE VIEW kataster_buildings_1826 AS 
-            SELECT k.id,k.gemeinde as gemeinde,k.flur as flur,k.nr as nr,k.bezeichnung as bezeichnung,k.hnr as hnr,k.the_geom
+            SELECT k.id,k.gemeinde as gemeinde,k.flur as flur,k.nr as nr,k.bezeichnung as bezeichnung,k.typ as typ,k.hnr as hnr,k.the_geom
             FROM kataster_gen_buildings as k
             WHERE k.fortschreibung is null`
     });
@@ -570,7 +571,7 @@ export async function writeBuildings(buildings:CalculatedBuilding[]) {
 
     consola.debug("Schreibe", buildings.length, "Gebäude nach kataster_gen_buildings")
 
-    let query = "INSERT INTO kataster_gen_buildings (gemeinde,flur,nr,yearFrom,yearTill,bezeichnung,hnr,fortschreibung,the_geom) VALUES ";
+    let query = "INSERT INTO kataster_gen_buildings (gemeinde,flur,nr,yearFrom,yearTill,bezeichnung,typ,hnr,fortschreibung,the_geom) VALUES ";
     let values = [];
     let idx = 1;
     let queryParts:string[] = []
@@ -587,6 +588,7 @@ export async function writeBuildings(buildings:CalculatedBuilding[]) {
         values.push(a.validFrom.getDate().getUTCFullYear());
         values.push(a.validTill.getDate().getUTCFullYear()-1);
         values.push(a.bezeichnung);
+        values.push(a.typ);
         values.push(a.hnr);
         values.push(a.fortschreibung);
         values.push('LINESTRING('+a.points.map(p => `${p.getPosition()[0]} ${p.getPosition()[1]}`).join(',')+`,${a.points[0].getPosition()[0]} ${a.points[0].getPosition()[1]})`);

@@ -77,7 +77,7 @@ function calculateBuildings(registry:parzellenReader.ParzellenRegistry, points:M
     const calculatedBuildings:mapWriter.CalculatedBuilding[] = [];
     for( const p of registry.all() ) {
         for( const a of p.gebaeude ) {
-            const c = new mapWriter.CalculatedBuilding(p.gemeinde, p.flur, p.nr,a.bezeichnung,optimizeHnr(a.hnr));
+            const c = new mapWriter.CalculatedBuilding(p.gemeinde, p.flur, p.nr,a.bezeichnung, a.typ, optimizeHnr(a.hnr));
             c.validFrom = p.validFrom;
             c.validTill = p.validTill;
             c.fortschreibung = p.changeset

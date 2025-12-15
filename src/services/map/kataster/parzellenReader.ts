@@ -10,6 +10,7 @@ const KATASTER_END_DATE = zeit.parse("08.05.1945");
 
 export interface JsonBuilding {
     bezeichnung?:string;
+    typ?:string;
     hnr?:string;
     points:any[];
     ref?:string;
@@ -66,6 +67,7 @@ export class Area {
 export class Gebaeude {
     points:PointDescriptor[] = [];
     bezeichnung:string;
+    typ:string;
     hnr:string;
 }
 
@@ -316,6 +318,7 @@ function parseJsonBuilding(parzelle:Parzelle, building:JsonBuilding[]) {
             parzelle.gebaeude.push(gebaeude);
 
             gebaeude.bezeichnung = b.bezeichnung;
+            gebaeude.typ = b.typ;
             gebaeude.hnr = b.hnr;
 
             if( b.ref != null ) {
@@ -329,6 +332,7 @@ function parseJsonBuilding(parzelle:Parzelle, building:JsonBuilding[]) {
                 const buildingRef = parzelle.original[0].gebaeude[buildingIdx-1];
                 gebaeude.points.push(...buildingRef.points);
                 gebaeude.bezeichnung = gebaeude.bezeichnung || buildingRef.bezeichnung;
+                gebaeude.typ = gebaeude.typ || buildingRef.typ;
                 gebaeude.hnr = gebaeude.hnr || buildingRef.hnr;
                 idx += buildingRef.points.length;
                 continue;

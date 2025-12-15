@@ -48,7 +48,7 @@ export class Strasse {
 }
 
 export class Building {
-    constructor(public gemeinde:gemeindeType.GemeindeId, public flur:number, public nr:string, public bezeichnung:string, public location:number[]) {}
+    constructor(public gemeinde:gemeindeType.GemeindeId, public flur:number, public nr:string, public bezeichnung:string, public typ:string, public location:number[]) {}
 }
 
 export async function readStrassen():Promise<Strasse[]> {
@@ -83,7 +83,7 @@ export async function readImportantBuildings():Promise<Building[]> {
     const result = [];
     for( const r of points.rows ) {
 
-        result.push(new Building(gemeindeType.forId(r.gemeinde), r.flur, r.parzelle, r.bezeichnung, [r.x, r.y]));
+        result.push(new Building(gemeindeType.forId(r.gemeinde), r.flur, r.parzelle, r.bezeichnung, r.typ, [r.x, r.y]));
     }
     return result;
 }
@@ -115,7 +115,7 @@ export class Parzelle {
 }
 
 export class ParzelleBuilding {
-    constructor(public bezeichnung:string, public hnr:string) {}
+    constructor(public bezeichnung:string, public typ:string, public hnr:string) {}
 }
 
 export async function readParzellen(gemeinde:gemeindeType.GemeindeId, flur:number):Promise<Parzelle[]> {
@@ -131,10 +131,10 @@ export async function readParzellen(gemeinde:gemeindeType.GemeindeId, flur:numbe
 
     for( const r of buildings.rows ) {
         if( !buildingMap.has(r.parzelle) ) {
-            buildingMap.set(r.parzelle, [new ParzelleBuilding(r.bezeichnung, r.hnr)]);
+            buildingMap.set(r.parzelle, [new ParzelleBuilding(r.bezeichnung, r.typ, r.hnr)]);
         }
         else {
-            buildingMap.get(r.parzelle).push(new ParzelleBuilding(r.bezeichnung, r.hnr));
+            buildingMap.get(r.parzelle).push(new ParzelleBuilding(r.bezeichnung, r.typ, r.hnr));
         }
     }
 

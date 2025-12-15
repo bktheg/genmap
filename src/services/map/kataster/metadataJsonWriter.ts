@@ -330,7 +330,8 @@ export async function writeMutterrollen(gemeinde:gemeindeType.GemeindeId, mutter
 
 type ParzelleBuildingExport = {
     b:string, // Bezeichnung
-    n:string // hnr
+    n:string, // hnr
+    t:string // typ
 }
 
 type ParzelleExport = {
@@ -365,7 +366,7 @@ export async function writeMetadataParzellen(gemeinde:gemeindeType.GemeindeId, f
             t:e.typ,
             i:infoExport,
             p:roundCoords(e.location),
-            b: e.buildings != null ? e.buildings.map(b => {return {b:b.bezeichnung, n:b.hnr} as ParzelleBuildingExport}) : null
+            b: e.buildings != null ? e.buildings.map(b => {return {b:b.bezeichnung, n:b.hnr, t:b.typ} as ParzelleBuildingExport}) : null
         } as ParzelleExport);
     }
     fs.writeFileSync(katasterPath+"/out_metadata/parzellen_"+gemeinde.getId()+"_"+flur+".json", JSON.stringify(out, (k, v) => v != null ? v : undefined, 0));
