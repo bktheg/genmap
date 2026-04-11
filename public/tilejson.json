@@ -1,0 +1,226 @@
+{
+    "attribution": "<a href=\"https://www.mapbox.com/about/maps\" target=\"_blank\" title=\"Mapbox\" aria-label=\"Mapbox\">&copy; Mapbox</a> <a href=\"https://www.openstreetmap.org/copyright/\" target=\"_blank\" title=\"OpenStreetMap\" aria-label=\"OpenStreetMap\">&copy; OpenStreetMap</a> <a class=\"mapbox-improve-map\" href=\"https://www.mapbox.com/contribute/\" target=\"_blank\" title=\"Improve this map\" aria-label=\"Improve this map\">Improve this map</a>",
+    "bounds": [
+        -180,
+        -85,
+        180,
+        85
+    ],
+    "center": [
+        0,
+        0,
+        0
+    ],
+    "constituents": [
+        {
+            "maxzoom": 16,
+            "minzoom": 0,
+            "source": "bktheg.596pvkhs"
+        },
+        {
+            "maxzoom": 16,
+            "minzoom": 0,
+            "source": "bktheg.katbez1826v3"
+        },
+        {
+            "maxzoom": 16,
+            "minzoom": 0,
+            "source": "bktheg.40ho46il"
+        },
+        {
+            "maxzoom": 16,
+            "minzoom": 0,
+            "source": "bktheg.katarea1826v2"
+        },
+        {
+            "maxzoom": 14,
+            "minzoom": 0,
+            "source": "bktheg.katareareamerged1826v1"
+        },
+        {
+            "maxzoom": 16,
+            "minzoom": 0,
+            "source": "bktheg.katort1826v1"
+        },
+        {
+            "maxzoom": 16,
+            "minzoom": 0,
+            "source": "bktheg.katadmin1826v1"
+        }
+    ],
+    "description": "kataster_strassen_1826.mbtiles + kataster_bezeichnungen_1826v3.mbtiles + kataster_buildings_1826.mbtiles + kataster_areas_1826v2.mbtiles + kataster_areas_merged_1826.mbtiles + kataster_orte_1826v1.mbtiles + kataster_admin_1826v1.mbtiles",
+    "fillzoom": 9,
+    "format": "pbf",
+    "language_options": {
+        "all": "Every available language",
+        "ar": "Arabic",
+        "bg": "Bulgarian",
+        "bs": "Bosnian",
+        "ca": "Catalan",
+        "cs": "Czech",
+        "da": "Danish",
+        "de": "German",
+        "el": "Greek",
+        "en": "English",
+        "es": "Spanish",
+        "et": "Estonian",
+        "fa": "Farsi",
+        "fi": "Finnish",
+        "fr": "French",
+        "he": "Hebrew",
+        "hr": "Croatian",
+        "hu": "Hungarian",
+        "id": "Indonesian",
+        "it": "Italian",
+        "ja": "Japanese",
+        "ka": "Georgian",
+        "ko": "Korean",
+        "local": "Renderable local language",
+        "lv": "Latvian",
+        "ms": "Malay",
+        "nb": "Norwegian Bokmål",
+        "nl": "Dutch",
+        "no": "Norwegian",
+        "pl": "Polish",
+        "pt": "Portuguese",
+        "ro": "Romanian",
+        "ru": "Russian",
+        "sk": "Slovak",
+        "sl": "Slovenian",
+        "sq": "Albanian",
+        "sr": "Serbian",
+        "sv": "Swedish",
+        "th": "Thai",
+        "tl": "Tagalog",
+        "tr": "Turkish",
+        "uk": "Ukrainian",
+        "vi": "Vietnamese",
+        "zh-Hans": "Simplified Chinese",
+        "zh-Hant": "Traditional Chinese"
+    },
+    "mapbox_logo": true,
+    "maxzoom": 16,
+    "minzoom": 0,
+    "name": "kataster_admin_1826v1.mbtiles + kataster_orte_1826v1 + kataster_areas_merged_1826v1 + kataster_areas_1826v2 + kataster_buildings_1826 + kataster_bezeichnungen_1826v3 + kataster_strassen_1826",
+    "scheme": "xyz",
+    "tilejson": "3.0.0",
+    "tiles": [
+        "http://localhost:9000/tiles/{z}/{x}/{y}.pbf"
+    ],
+    "vector_layers": [
+        {
+            "description": "",
+            "fields": {
+                "gemeinde": "String",
+                "name": "String"
+            },
+            "id": "kataster_strassen_1826",
+            "maxzoom": 16,
+            "minzoom": 0,
+            "source": "bktheg.596pvkhs",
+            "source_name": "kataster_strassen_1826"
+        },
+        {
+            "description": "",
+            "fields": {
+                "flur": "Number",
+                "gemeinde": "String",
+                "name": "String"
+            },
+            "id": "kataster_bezeichnungen_1826v3",
+            "maxzoom": 16,
+            "minzoom": 0,
+            "source": "bktheg.katbez1826v3",
+            "source_name": "kataster_bezeichnungen_1826v3"
+        },
+        {
+            "description": "",
+            "fields": {
+                "bezeichnung": "String",
+                "flur": "Number",
+                "flurstueck": "String",
+                "gemeinde": "String",
+                "hnr": "String"
+            },
+            "id": "kataster_buildings_1826",
+            "maxzoom": 16,
+            "minzoom": 0,
+            "source": "bktheg.40ho46il",
+            "source_name": "kataster_buildings_1826"
+        },
+        {
+            "description": "",
+            "fields": {
+                "artikel": "String",
+                "eigentuemer": "String",
+                "flaeche": "String",
+                "flur": "Number",
+                "flurstueck": "String",
+                "gemeinde": "String",
+                "id": "Number",
+                "typ": "Number",
+                "typplain": "String"
+            },
+            "id": "kataster_areas_1826v2",
+            "maxzoom": 16,
+            "minzoom": 0,
+            "source": "bktheg.katarea1826v2",
+            "source_name": "kataster_areas_1826v2"
+        },
+        {
+            "description": "",
+            "fields": {
+                "flur": "Number",
+                "gemeinde": "String",
+                "typ": "Number"
+            },
+            "id": "kataster_areas_merged_1826",
+            "maxzoom": 14,
+            "minzoom": 0,
+            "source": "bktheg.katareareamerged1826v1",
+            "source_name": "kataster_areas_merged_1826v1"
+        },
+        {
+            "description": "",
+            "fields": {
+                "flur": "Number",
+                "gemeinde": "String",
+                "name": "String",
+                "typ": "Number"
+            },
+            "id": "kataster_orte_1826v1",
+            "maxzoom": 16,
+            "minzoom": 0,
+            "source": "bktheg.katort1826v1",
+            "source_name": "kataster_orte_1826v1"
+        },
+        {
+            "description": "",
+            "fields": {
+                "id": "String",
+                "name": "String",
+                "type": "String"
+            },
+            "id": "kataster_admin_1826v1",
+            "maxzoom": 16,
+            "minzoom": 0,
+            "source": "bktheg.katadmin1826v1",
+            "source_name": "kataster_admin_1826v1.mbtiles"
+        }
+    ],
+    "worldview_default": "US",
+    "worldview_options": {
+        "ALL": "Every available worldview",
+        "AR": "Argentina",
+        "CL": "Chile",
+        "CN": "China",
+        "IN": "India",
+        "JP": "Japan",
+        "MA": "Morocco",
+        "RS": "Serbia",
+        "RU": "Russia",
+        "TR": "Turkey",
+        "US": "United States",
+        "VN": "Vietnam"
+    }
+}

@@ -581,7 +581,7 @@ export async function writeBuildings(buildings:CalculatedBuilding[]) {
             continue;
         }
 
-        const part = "($"+(idx++)+",$"+(idx++)+",$"+(idx++)+",$"+(idx++)+",$"+(idx++)+",$"+(idx++)+",$"+(idx++)+",$"+(idx++)+",ST_SetSRID(ST_MakePolygon(ST_GeomFromText($"+(idx++)+")),"+SRS+"))";
+        const part = "($"+(idx++)+",$"+(idx++)+",$"+(idx++)+",$"+(idx++)+",$"+(idx++)+",$"+(idx++)+",$"+(idx++)+",$"+(idx++)+",$"+(idx++)+",ST_SetSRID(ST_MakePolygon(ST_GeomFromText($"+(idx++)+")),"+SRS+"))";
         values.push(a.gemeinde.getId());
         values.push(a.flur);
         values.push(a.parzelle);

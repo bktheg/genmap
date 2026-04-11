@@ -17,3 +17,9 @@ export function getClient():pg.Client {
     return client;
 }
 
+export function close() {
+    if( client ) {
+        client.end()
+        client = null
+    }
+}

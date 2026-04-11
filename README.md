@@ -78,6 +78,10 @@ Validiert alle Gemeinden mit geplanten oder erledigten Fluren und schreibt die V
 
 Erzeugt alle Metadaten für alle Gemeinden neu
 
+    node ./dist/cli.js preview
+
+Startet einen Vorschaumodus für die erfassten Fluren. Der Vorschaumodus erfordert zusätzlich eine lokal laufende Version von "dortmund1826" (https://github.com/bktheg/dortmund1826), gestartet im Vorschaumodus.
+
 ### Daten
 Ein Beispieldatensatz ist unter https://github.com/bktheg/dortmund1826-data zu finden. Dieser enthält auch aktuelle Vorlagen für Vermessungsdateien (_vorlage_net.xlsx), Flurbücher (_vorlage_flurbuch.xlsx) und Namenslisten (_vorlage_mutterrollen_namen.xlsx).
 

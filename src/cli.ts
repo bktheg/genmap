@@ -5,14 +5,14 @@ import { CustomFancyReporter } from '#src/customReporter';
 setup();
 
 import * as yargs from 'yargs'
-import * as chalk from 'chalk'
 import * as mapGenerator from '#kataster/mapGenerator'
 import * as mapValidator from '#kataster/mapValidator'
 import * as autoLayerGenerator from '#kataster/autoLayerGenerator'
 import * as urkatasterInfoGenerator from '#kataster/urkatasterInfoGenerator'
 import * as gemeindeType from '#kataster/gemeindeType'
+import * as preview from '#services/preview/preview'
 import { hideBin } from 'yargs/helpers'
-import { getClient } from '#utils/database'
+import * as database from '#utils/database'
 
 const parsedArgs = yargs.default(hideBin(process.argv))
 .command('prepare [gemeinde]', 'Bereitet die Rohdaten aus QGIS für die Kartengenerierung vor für eine bestimmte Gemeinde oder alle Gemeinden', (yargs) => {
@@ -90,6 +90,11 @@ const parsedArgs = yargs.default(hideBin(process.argv))
     await mapValidator.validateMap()
     consola.success('fertig')
 })
+.command('preview', 'Startet einen Server mit einer Preview der aktuellen Daten. Benötigt eine separat laufende UI', () => {}, async (argv) => {
+    setLogLevel(argv.verbose)
+    consola.start('Preview')
+    await preview.start()
+})
 .option('verbose', {
     alias: 'v',
     type: 'boolean',
@@ -97,7 +102,7 @@ const parsedArgs = yargs.default(hideBin(process.argv))
 })
 .parseAsync()
 
-parsedArgs.then(() => getClient().end())
+parsedArgs.then(() => database.close())
 
 
 function setLogLevel(verbose:unknown):void {
