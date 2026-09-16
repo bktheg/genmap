@@ -1,10 +1,11 @@
-import {AreaTyp} from '#kataster/parzellenReader';
+import {AreaTyp, JsonSubArea} from '#kataster/parzellenReader';
 import * as fs from 'fs'
 import * as flurbuchReader from '#kataster/flurbuchReader'
 import * as gemeindeType from '#kataster/gemeindeType'
 import { consola } from 'consola';
 import {Parzelle, ParzellenRegistry} from '#kataster/parzellenRegistry'
 import { createRawDataReader } from '#kataster/rawDataReader';
+import * as unitConversion from '#kataster/unitConversion'
 
 const katasterPath = process.env.KATASTER_PATH
 
@@ -125,6 +126,35 @@ function enrichAreaTypes(parzellen:Parzelle[]):void {
                 consola.debug("Zusätzliche Kulturarten für Parzelle "+p.id()+" erfasst. Erwartet "+areaTypesToString(flurbuchEntry.typ)+" ist "+areaTypesToString(actualAreaTypes.values()));
             }
         }
+    }
+}
+
+function collectSubareas(entry:flurbuchReader.Parzelle):JsonSubArea[] {
+    const result:JsonSubArea[] = [];
+    if( !entry ) {
+        return result;
+    }
+
+    for( const subrow of entry.subrows ) {
+        if( !subrow.owner || subrow.owner == entry.owner ) {
+            continue;
+        }
+        result.push({
+            eigentuemer: subrow.owner,
+            mutterrolle: subrow.mutterrolle,
+            typPlain: subrow.typPlain,
+            klasse: subrow.klasse,
+            flaeche: (subrow.areaTaxable ?? new unitConversion.Area(0,0,0)).add(subrow.areaNonTaxable).toString(),
+            reinertrag: subrow.reinertrag ? subrow.reinertrag.toString() : null
+        });
+    }
+    return result;
+}
+
+function enrichSubareas(parzellen:Parzelle[]):void {
+    for( const p of parzellen ) {
+        const flurbuchEntry = flurbuchReader.loadEntry(p.gemeinde, p.flur, p.nr);
+        p.subareas = collectSubareas(flurbuchEntry);
     }
 }
 
@@ -252,6 +282,7 @@ export async function generateAutoLayer(gemeinde:gemeindeType.GemeindeId) {
     }
     reduceAreas([...parzellen.values()]);
     enrichAreaTypes([...parzellen.values()]);
+    enrichSubareas([...parzellen.values()]);
     reducePoints([...parzellen.values()]);
 
     const basePath = `${katasterPath}/auto`;

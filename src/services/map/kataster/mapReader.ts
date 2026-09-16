@@ -1,6 +1,6 @@
 import * as database from '#utils/database'
 import {PointDescriptor} from '#kataster/pointDescriptors'
-import {ParzellenRegistry} from '#kataster/parzellenReader'
+import {ParzellenRegistry, SubArea} from '#kataster/parzellenReader'
 import * as gemeindeType from '#kataster/gemeindeType';
 import * as infoReader from '#kataster/infoReader';
 
@@ -90,6 +90,7 @@ export async function readImportantBuildings():Promise<Building[]> {
 
 export class Parzelle {
     private infoList:infoReader.Info[] = [];
+    public subareas:SubArea[] = [];
 
     constructor(
         public gemeinde:gemeindeType.GemeindeId,
@@ -118,7 +119,7 @@ export class ParzelleBuilding {
     constructor(public bezeichnung:string, public typ:string, public hnr:string) {}
 }
 
-export async function readParzellen(gemeinde:gemeindeType.GemeindeId, flur:number):Promise<Parzelle[]> {
+export async function readParzellen(gemeinde:gemeindeType.GemeindeId, flur:number, registry?:ParzellenRegistry):Promise<Parzelle[]> {
     const info = await infoReader.readAll();
 
     const buildingMap = new Map<string,ParzelleBuilding[]>();
@@ -167,6 +168,7 @@ export async function readParzellen(gemeinde:gemeindeType.GemeindeId, flur:numbe
             [r.x, r.y],
             buildingMap.get(r.parzelle));
         parzelle.addInfo(info.filter(i => i.matches(gemeinde.getParent().getKreis(), gemeinde.getParent(), gemeinde, flur, parzelle.nr)));
+        parzelle.subareas = registry?.get(gemeinde, flur, r.parzelle)?.subareas ?? [];
         result.push(parzelle);
     }
 

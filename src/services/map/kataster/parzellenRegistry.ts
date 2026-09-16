@@ -1,10 +1,11 @@
-import {JsonParzelle,JsonArea,JsonBuilding, AreaTyp} from '#kataster/parzellenReader';
+import {JsonParzelle,JsonArea,JsonBuilding,JsonSubArea, AreaTyp} from '#kataster/parzellenReader';
 import * as gemeindeType from '#kataster/gemeindeType'
 import { consola } from 'consola';
 
 export class Parzelle {
     area: JsonArea[] = [];
     building: JsonBuilding[] = [];
+    subareas: JsonSubArea[] = [];
     typ:AreaTyp;
 
     constructor(public gemeinde:gemeindeType.GemeindeId, public flur:number, public nr:string) {}
@@ -18,6 +19,7 @@ export class Parzelle {
             nr:this.nr,
             area:this.area,
             building:this.building,
+            subareas:this.subareas,
             help:null,
             typ:this.typ
         }

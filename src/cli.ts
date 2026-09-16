@@ -11,6 +11,7 @@ import * as autoLayerGenerator from '#kataster/autoLayerGenerator'
 import * as urkatasterInfoGenerator from '#kataster/urkatasterInfoGenerator'
 import * as gemeindeType from '#kataster/gemeindeType'
 import * as preview from '#services/preview/preview'
+import * as tileCache from '#services/preview/tileCache'
 import { hideBin } from 'yargs/helpers'
 import * as database from '#utils/database'
 
@@ -43,6 +44,7 @@ const parsedArgs = yargs.default(hideBin(process.argv))
         setLogLevel(argv.verbose)
         consola.start('Erzeuge Karte für Gemeinde', argv.gemeinde || '*')
         await mapGenerator.generateMap(argv.gemeinde ? gemeindeType.forId(argv.gemeinde) : null, argv.writeAllPoints)
+        tileCache.invalidate()
         consola.success('fertig')
     }
 )
@@ -63,6 +65,7 @@ const parsedArgs = yargs.default(hideBin(process.argv))
         await autoLayerGenerator.generateAutoLayer(argv.gemeinde ? gemeindeType.forId(argv.gemeinde) : null)
         consola.start('Erzeuge Karte für Gemeinde', argv.gemeinde || '*')
         await mapGenerator.generateMap(argv.gemeinde ? gemeindeType.forId(argv.gemeinde) : null, argv.writeAllPoints)
+        tileCache.invalidate()
         consola.success('fertig')
     }
 )
@@ -76,6 +79,7 @@ const parsedArgs = yargs.default(hideBin(process.argv))
     setLogLevel(argv.verbose)
     consola.start('Berechne Zusatzinfos')
     await urkatasterInfoGenerator.generateUrkatasterInfo(null)
+    tileCache.invalidate()
     consola.success('fertig')
 })
 .command('metadata', 'Erzeugt die Metadaten zur Karte (Jsons, Gemeindedefinitionen, Grenzen)', () => {}, async (argv) => {

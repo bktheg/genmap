@@ -188,9 +188,13 @@ export async function generateMetadata() {
     const allParzellen:mapReader.Parzelle[] = []
     consola.start("Schreibe Parzellen pro Gemeinde (JSON)");
     for( const gemeinde of gemeindeType.GEMEINDEN ) {
+        if( !gemeinde.getFlure().some(flur => flur.isDone()) ) {
+            continue;
+        }
+        const registry = await parzellenReader.readParzellen(gemeinde);
         for( const flur of gemeinde.getFlure() ) {
             if( flur.isDone() ) {
-                const parzellen = await mapReader.readParzellen(gemeinde, flur.getId());
+                const parzellen = await mapReader.readParzellen(gemeinde, flur.getId(), registry);
                 allParzellen.push(...parzellen)
                 await metadataJsonWriter.writeMetadataParzellen(gemeinde, flur.getId(), parzellen);
             }

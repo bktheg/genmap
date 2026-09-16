@@ -334,6 +334,15 @@ type ParzelleBuildingExport = {
     t:string // typ
 }
 
+type SubAreaExport = {
+    e:string, // eigentuemer
+    a:string, // mutterrolle (artikel)
+    t:string, // typ
+    k:string, // klasse
+    f:string, // flaeche
+    r:string // reinertrag
+}
+
 type ParzelleExport = {
     n:string, // nr
     f:string, // flaeche
@@ -345,7 +354,8 @@ type ParzelleExport = {
     t:string, // typ
     p:number[],// position
     i:InfoExport[], // infos
-    b:ParzelleBuildingExport[] // buildings
+    b:ParzelleBuildingExport[], // buildings
+    u:SubAreaExport[] // unterflaechen
 }
 
 export async function writeMetadataParzellen(gemeinde:gemeindeType.GemeindeId, flur:number, parzellen:mapReader.Parzelle[]) {
@@ -366,7 +376,17 @@ export async function writeMetadataParzellen(gemeinde:gemeindeType.GemeindeId, f
             t:e.typ,
             i:infoExport,
             p:roundCoords(e.location),
-            b: e.buildings != null ? e.buildings.map(b => {return {b:b.bezeichnung, n:b.hnr, t:b.typ} as ParzelleBuildingExport}) : null
+            b: e.buildings != null ? e.buildings.map(b => {return {b:b.bezeichnung, n:b.hnr, t:b.typ} as ParzelleBuildingExport}) : null,
+            u: (e.subareas ?? []).map(sa => {
+                return {
+                    e:sa.eigentuemer,
+                    a:sa.mutterrolle,
+                    t:sa.typPlain,
+                    k:sa.klasse,
+                    f:sa.flaeche,
+                    r:gemeinde.isExportReinertrag() ? sa.reinertrag : null
+                } as SubAreaExport
+            })
         } as ParzelleExport);
     }
     fs.writeFileSync(katasterPath+"/out_metadata/parzellen_"+gemeinde.getId()+"_"+flur+".json", JSON.stringify(out, (k, v) => v != null ? v : undefined, 0));

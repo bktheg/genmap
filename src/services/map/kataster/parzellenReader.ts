@@ -22,10 +22,20 @@ export interface JsonArea {
     rawtype:string;
 }
 
+export interface JsonSubArea {
+    eigentuemer?:string;
+    mutterrolle?:string;
+    typPlain?:string;
+    klasse?:string;
+    flaeche?:string;
+    reinertrag?:string;
+}
+
 export interface JsonParzelle {
     nr:string;
     area:JsonArea[];
     building:JsonBuilding[];
+    subareas?:JsonSubArea[];
     help:any[];
     typ:AreaTyp;
 }
@@ -71,6 +81,15 @@ export class Gebaeude {
     hnr:string;
 }
 
+export class SubArea {
+    eigentuemer:string;
+    mutterrolle:string;
+    typPlain:string;
+    klasse:string;
+    flaeche:string;
+    reinertrag:string;
+}
+
 export const enum AreaTyp {
     Default = 0,
     Garten,
@@ -93,6 +112,7 @@ export class Parzelle {
     typ:AreaTyp = AreaTyp.Default;
     area:Area[] = [];
     gebaeude:Gebaeude[] = [];
+    subareas:SubArea[] = [];
     helper:PointDescriptor[] = [];
     validFrom:zeit.Zeit = KATASTER_START_DATE;
     validTill:zeit.Zeit = KATASTER_END_DATE;
@@ -347,6 +367,21 @@ function parseJsonBuilding(parzelle:Parzelle, building:JsonBuilding[]) {
     }
 }
 
+function parseJsonSubareas(parzelle:Parzelle, subareas:JsonSubArea[]) {
+    if( subareas != null ) {
+        for( const s of subareas ) {
+            const subArea = new SubArea();
+            subArea.eigentuemer = s.eigentuemer;
+            subArea.mutterrolle = s.mutterrolle;
+            subArea.typPlain = s.typPlain;
+            subArea.klasse = s.klasse;
+            subArea.flaeche = s.flaeche;
+            subArea.reinertrag = s.reinertrag;
+            parzelle.subareas.push(subArea);
+        }
+    }
+}
+
 function parseJsonHelp(parzelle:Parzelle, help:any[]) {
     if( help != null ) {
         let idx = 1;
@@ -367,6 +402,7 @@ async function readParzelle(file:string,gemeinde:gemeindeType.GemeindeId, flur:s
     parseJsonHelp(result, descriptor.help);
     parseJsonArea(result, descriptor.area);
     parseJsonBuilding(result, descriptor.building);
+    parseJsonSubareas(result, descriptor.subareas);
     return result;
 }
 

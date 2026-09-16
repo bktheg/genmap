@@ -147,19 +147,25 @@ function loadFile(gemeinde:gemeindeType.GemeindeId, flur:number):Flur {
                 }
                 lastParzelle.subrows.push(subrow)
 
-                lastParzelle.areaTaxable = lastParzelle.areaTaxable.add(subrow.areaTaxable);
-                lastParzelle.areaNonTaxable = lastParzelle.areaNonTaxable.add(subrow.areaNonTaxable);
-                if( subrow.reinertrag ) {
-                    lastParzelle.reinertrag = lastParzelle.reinertrag != null ? lastParzelle.reinertrag.add(subrow.reinertrag) : subrow.reinertrag;
-                }
-                
-                for( const type of mapType(gemeinde, flur, subrow.typPlain) ) {
-                    if( !lastParzelle.typ.includes(type) ) {
-                        lastParzelle.typ.push(type);
+                // Only sum up rows of the same owner, different owner might mean a building on that parzelle owned by somebody else
+                if( !subrow.owner || subrow.owner == lastParzelle.owner ) {
+                    lastParzelle.areaTaxable = lastParzelle.areaTaxable.add(subrow.areaTaxable);
+                    lastParzelle.areaNonTaxable = lastParzelle.areaNonTaxable.add(subrow.areaNonTaxable);
+                    if( subrow.reinertrag ) {
+                        lastParzelle.reinertrag = lastParzelle.reinertrag != null ? lastParzelle.reinertrag.add(subrow.reinertrag) : subrow.reinertrag;
                     }
+
+                    for( const type of mapType(gemeinde, flur, subrow.typPlain) ) {
+                        if( !lastParzelle.typ.includes(type) ) {
+                            lastParzelle.typ.push(type);
+                        }
+                    }
+                    lastParzelle.typPlain += ", "+subrow.typPlain;
+                    lastParzelle.klasse = lastParzelle.subrows
+                        .filter(r => !r.owner || r.owner == lastParzelle.owner)
+                        .map(r => r.klasse?.length == 1 ? r.areaTaxable.add(r.areaNonTaxable).toString()+"m="+r.klasse : r.klasse)
+                        .join(' ');
                 }
-                lastParzelle.typPlain += ", "+subrow.typPlain;
-                lastParzelle.klasse = lastParzelle.subrows.map(r => r.klasse?.length == 1 ? r.areaTaxable.add(r.areaNonTaxable).toString()+"m="+r.klasse : r.klasse).join(' ');
             }
             continue;
         }

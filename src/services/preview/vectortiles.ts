@@ -1,5 +1,6 @@
 import * as express from 'express';
 import * as database from '#utils/database'
+import * as tileCache from '#services/preview/tileCache'
 
 class Tile {
     constructor(public x:number, public y:number, public zoom:number, public format:string) {}
@@ -104,7 +105,7 @@ function envelopeToSQL(env:Map<string,number>, zoom:number):string {
             (SELECT ST_AsMVT(katbuildings.*,'kataster_buildings_1826') as mvt FROM katbuildings)
             ${zoom < 15 ? 
                 "UNION ALL (SELECT ST_AsMVT(katareas1826merged.*,'kataster_areas_merged_1826') as mvt FROM katareas1826merged)" : 
-                "UNION ALL (SELECT ST_AsMVT(katareas1826.*,'kataster_areas_1826v2') as mvt FROM katareas1826)"}
+                "UNION ALL (SELECT ST_AsMVT(katareas1826.*,'kataster_areas_1826v2', 4096, 'geom', 'id') as mvt FROM katareas1826)"}
             UNION ALL (SELECT ST_AsMVT(katstrassen.*,'kataster_strassen_1826') as mvt FROM katstrassen)
             UNION ALL (SELECT ST_AsMVT(katbezeichnungen.*,'kataster_bezeichnungen_1826v3') as mvt FROM katbezeichnungen)
             UNION ALL (SELECT ST_AsMVT(katorte.*,'kataster_orte_1826v1') as mvt FROM katorte)
@@ -113,8 +114,6 @@ function envelopeToSQL(env:Map<string,number>, zoom:number):string {
 
        SELECT string_agg(mvt, '') as mvt from tiles;
     `
-    console.log(sqlTmpl)
-    console.log(env)
     /*
     
             
@@ -153,9 +152,14 @@ router.get('/:zoom/:x/:y.:format', async function(req, res, next) {
         return
     }
 
-    let env = tileToEnvelope(tile)
-    let sql = envelopeToSQL(env, tile.zoom)
-    let pbf = await sqlToPbf(sql, env)
+    let pbf = tileCache.get(tile.zoom, tile.x, tile.y)
+    if (pbf === null) {
+        let env = tileToEnvelope(tile)
+        let sql = envelopeToSQL(env, tile.zoom)
+        let result = await sqlToPbf(sql, env)
+        pbf = result == null ? Buffer.alloc(0) : Buffer.from(result)
+        tileCache.put(tile.zoom, tile.x, tile.y, pbf)
+    }
 
     res.writeHead(200, {
         'Access-Control-Allow-Origin': "*",
