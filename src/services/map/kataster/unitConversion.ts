@@ -135,6 +135,67 @@ export function parseMoney(moneyString:string):Money {
     return new Money(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
 }
 
+export type KlasseParseResult = {
+    klassenMap: Map<number,Area>;
+    error: string;
+}
+
+export function parseKlasseString(klasse:string, totalArea:Area):KlasseParseResult {
+    const klassenMap = new Map<number,Area>()
+    const simpleKlasseMatch = klasse.match(/^([0-9]+)(?:\s*\([IVXLCDM]+\))?$/)
+    if( simpleKlasseMatch ) {
+        const parsedKlasse = parseInt(simpleKlasseMatch[1]);
+        if( parsedKlasse < 1 || parsedKlasse > 5 ) {
+            return { klassenMap: null, error: 'Ungültige Klasse: '+klasse }
+        }
+        klassenMap.set(parsedKlasse, totalArea)
+        return { klassenMap, error: null }
+    }
+
+    const regex = /^([0-9/\.]+[mrf]\=[1-5])([\s]+[0-9/\.]+[mrf]\=[1-5])?([\s]+[0-9/\.]+[mrf]\=[1-5])?([\s]+[0-9/\.]+[mrf]\=[1-5])?(?:\srest\s([1-5]))?$/
+    const matches = klasse.match(regex)
+    if( !matches ) {
+        return { klassenMap: null, error: 'Ungültige Klasse: '+klasse }
+    }
+
+    let remainingArea = totalArea
+    for( const entry of [matches[1],matches[2], matches[3], matches[4]] ) {
+        if( !entry ) {
+            continue
+        }
+        const parts = entry.trim().split('=')
+        if( parts.includes('/') ) {
+            // TODO Not supported yet
+            return { klassenMap: null, error: null };
+        }
+        const unit = parts[0].charAt(parts[0].length-1)
+        let areaParts = parts[0].substring(0, parts[0].length-1).split('.')
+        if( unit == 'r' ) {
+            areaParts = ['0', ...areaParts]
+        }
+        else if( unit == 'f' ) {
+            areaParts = ['0', '0', ...areaParts]
+        }
+        while( areaParts.length < 3 ) {
+            areaParts.push('0')
+        }
+        if( areaParts.length > 3 ) {
+            return { klassenMap: null, error: 'Ungültige Klasse: '+klasse }
+        }
+
+        const areaOfPart = parseMorgenRutenFuss(areaParts.join('.'))
+        remainingArea = remainingArea.subtract(areaOfPart)
+        klassenMap.set(parseInt(parts[1]), areaOfPart)
+    }
+
+    if( remainingArea.getTotalFuss() < 0 ) {
+        return { klassenMap: null, error: 'Ungültige Klasse: '+klasse+'. Restfläche ist negativ' }
+    }
+
+    klassenMap.set(parseInt(matches[5]), remainingArea)
+    return { klassenMap, error: null }
+}
+
 export function splitFuss(fuss:number):Area {
     return new Area(0,0,fuss).rebalance();
 }

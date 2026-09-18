@@ -242,62 +242,12 @@ function validateSizeAgainstReinertrag(gemeinde:gemeindeType.GemeindeId):Validat
 }
 
 function parseAndValidateKlasse(result:ValidationResult, parzelle:flurbuchReader.Parzelle):Map<number,unitConversion.Area> {
-    const klassenMap = new Map<number,unitConversion.Area>()
-    if( parzelle.klasse.match(/^[0-9]+$/) ) {
-        const klasse = parseInt(parzelle.klasse);
-        if( klasse < 1 || klasse > 5 ) {
-            result.logMessage(parzelle.gemeinde, parzelle.flur, parzelle.nr, 'Ungültige Klasse: '+parzelle.klasse);
-            return null
-        }
-        klassenMap.set(klasse, parzelle.areaNonTaxable.add(parzelle.areaTaxable))
+    const totalArea = parzelle.areaNonTaxable.add(parzelle.areaTaxable)
+    const parsed = unitConversion.parseKlasseString(parzelle.klasse, totalArea)
+    if( parsed.error ) {
+        result.logMessage(parzelle.gemeinde, parzelle.flur, parzelle.nr, parsed.error);
     }
-    else {
-        const regex = /^([0-9/\.]+[mrf]\=[1-5])([\s]+[0-9/\.]+[mrf]\=[1-5])?([\s]+[0-9/\.]+[mrf]\=[1-5])?([\s]+[0-9/\.]+[mrf]\=[1-5])?(?:\srest\s([1-5]))?$/
-        const matches = parzelle.klasse.match(regex)
-        if( !matches ) {
-            result.logMessage(parzelle.gemeinde, parzelle.flur, parzelle.nr, 'Ungültige Klasse: '+parzelle.klasse);
-            return null
-        }
-        
-        let remainingArea = parzelle.areaTaxable.add(parzelle.areaNonTaxable)
-        for( const entry of [matches[1],matches[2], matches[3], matches[4]] ) {
-            if( !entry ) {
-                continue
-            }
-            const parts = entry.trim().split('=')
-            if( parts.includes('/') ) {
-                // TODO Not supported yet
-                return null;
-            }
-            const unit = parts[0].charAt(parts[0].length-1)
-            let areaParts = parts[0].substring(0, parts[0].length-1).split('.')
-            if( unit == 'r' ) {
-                areaParts = ['0', ...areaParts]
-            }
-            else if( unit == 'f' ) {
-                areaParts = ['0', '0', ...areaParts]
-            }
-            while( areaParts.length < 3 ) {
-                areaParts.push('0')
-            }
-            if( areaParts.length > 3 ) {
-                result.logMessage(parzelle.gemeinde, parzelle.flur, parzelle.nr, 'Ungültige Klasse: '+parzelle.klasse);
-                return null
-            }
-
-            const areaOfPart = unitConversion.parseMorgenRutenFuss(areaParts.join('.'))
-            remainingArea = remainingArea.subtract(areaOfPart)
-            klassenMap.set(parseInt(parts[1]), areaOfPart)
-        }
-
-        if( remainingArea.getTotalFuss() < 0 ) {
-            result.logMessage(parzelle.gemeinde, parzelle.flur, parzelle.nr, 'Ungültige Klasse: '+parzelle.klasse+'. Restfläche ist negativ');
-            return null
-        }
-
-        klassenMap.set(parseInt(matches[5]), remainingArea)
-    }
-    return klassenMap
+    return parsed.klassenMap
 }
 
 function kulturartToTaxenKulturart(kulturart:string):MutterrolleTaxeKulturart {
