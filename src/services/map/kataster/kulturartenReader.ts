@@ -3,10 +3,12 @@ import * as XslxUtils from '#utils/xslxUtils'
 import { AreaTyp } from '#kataster/parzellenReader'
 import { MutterrolleTaxeKulturart } from '#kataster/mutterrolleNameListReader'
 import { consola } from 'consola'
+import * as gemeindeType from '#kataster/gemeindeType'
+import { TaxierungSpec, parseTaxierungSpec, resolveTaxierungSpec } from '#kataster/taxierungSpec'
 const katasterPath = process.env.KATASTER_PATH
 
 class Kulturart {
-    constructor(public kulturart:string, public kartendarstellung:AreaTyp, public taxiertAls:MutterrolleTaxeKulturart|null) {}
+    constructor(public kulturart:string, public kartendarstellung:AreaTyp, public taxiertAls:TaxierungSpec, public taxiertAlsRaw:string) {}
 }
 
 const KULTURARTEN = new Map<string,Kulturart>()
@@ -22,12 +24,22 @@ export function lookupKartendarstellung(kulturart:string):AreaTyp|null {
     return kulturartObj.kartendarstellung;
 }
 
-export function lookupTaxierung(kulturart:string):MutterrolleTaxeKulturart|null {
+export function lookupTaxierung(kulturart:string, gemeinde:gemeindeType.GemeindeId):MutterrolleTaxeKulturart|null {
     const kulturartObj = KULTURARTEN.get(kulturart.toLowerCase())
     if( !kulturartObj ) {
         return null
     }
-    return kulturartObj.taxiertAls;
+
+    const buergermeisterei = gemeinde.getParent()
+    const ids = [gemeinde.getId(), buergermeisterei.getId(), buergermeisterei.getKreis().getId()]
+    const resolved = resolveTaxierungSpec(kulturartObj.taxiertAls, ids)
+    if( resolved == null ) {
+        if( kulturartObj.taxiertAlsRaw ) {
+            consola.error(`Keine Taxierung für Kulturart ${kulturart} in Gemeinde ${gemeinde.getId()} (Bürgermeisterei ${buergermeisterei.getId()}, Kreis ${buergermeisterei.getKreis().getId()}) hinterlegt`)
+        }
+        return null
+    }
+    return mapTaxiertAls(resolved)
 }
 
 export function lookupDisplayLabel(kulturart:string):string {
@@ -66,7 +78,7 @@ function loadKulturartenFromFile(path:string):void {
             throw Error("ERROR: Keine Kartendarstellung für Kulturart gesetzt: "+kulturart)
         }
 
-        KULTURARTEN.set(kulturart, new Kulturart(kulturart, mapKartendarstellung(kartendarstellung), mapTaxiertAls(taxiertAls)))
+        KULTURARTEN.set(kulturart, new Kulturart(kulturart, mapKartendarstellung(kartendarstellung), parseAndValidateTaxierung(kulturart, taxiertAls), taxiertAls))
         if( label ) {
             DISPLAYLABELS.set(kulturart, label)
         }
@@ -106,12 +118,22 @@ function mapKartendarstellung(str:string):AreaTyp {
     }
 }
 
-function mapTaxiertAls(str:string):MutterrolleTaxeKulturart|null {
-    if( !str ) {
-        return null
+function parseAndValidateTaxierung(kulturart:string, str:string):TaxierungSpec {
+    try {
+        const spec = parseTaxierungSpec(str)
+        if( spec.defaultValue ) {
+            mapTaxiertAls(spec.defaultValue)
+        }
+        spec.overrides.forEach(v => mapTaxiertAls(v))
+        return spec
     }
+    catch( e ) {
+        throw new Error('Kulturart '+kulturart+': '+e.message)
+    }
+}
 
-    switch(str.toLowerCase()) {
+function mapTaxiertAls(str:string):MutterrolleTaxeKulturart|null {
+    switch(str.trim().toLowerCase()) {
     case 'ackerland':
         return MutterrolleTaxeKulturart.Ackerland;
     case 'hofraum':
@@ -132,6 +154,10 @@ function mapTaxiertAls(str:string):MutterrolleTaxeKulturart|null {
         return MutterrolleTaxeKulturart.Steinbruch;
     case 'teich':
         return MutterrolleTaxeKulturart.Teich;
+    case 'heide':
+        return MutterrolleTaxeKulturart.Heide;
+    case 'öde':
+        return MutterrolleTaxeKulturart.Oede;
     default:
         throw new Error('Kann Kulturart nicht laden. Unbekannte Taxierung: '+str);
     }

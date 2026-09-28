@@ -205,7 +205,7 @@ function validateSizeAgainstReinertrag(gemeinde:gemeindeType.GemeindeId):Validat
                 const expectedTaxPerMorgen = subrow.reinertrag.div(subrow.areaTaxable.add(subrow.areaNonTaxable).getTotalMorgen()).toString()
                 let taxenKulturart:MutterrolleTaxeKulturart|null
                 try {
-                    taxenKulturart = kulturartToTaxenKulturart(subrow.typPlain);
+                    taxenKulturart = kulturartToTaxenKulturart(subrow.typPlain, gemeinde);
                 }
                 catch( e ) {
                     result.logMessage(gemeinde, flur.getId(), parzelle.nr, `Keine Taxen-Kulturart für Kulturart ${subrow.typPlain} gefunden. Aktueller Wert entspricht Satz ${expectedTaxPerMorgen}`)
@@ -250,7 +250,7 @@ function parseAndValidateKlasse(result:ValidationResult, parzelle:flurbuchReader
     return parsed.klassenMap
 }
 
-function kulturartToTaxenKulturart(kulturart:string):MutterrolleTaxeKulturart {
+function kulturartToTaxenKulturart(kulturart:string, gemeinde:gemeindeType.GemeindeId):MutterrolleTaxeKulturart {
     if( !kulturart ) {
         return null;
     }
@@ -264,7 +264,7 @@ function kulturartToTaxenKulturart(kulturart:string):MutterrolleTaxeKulturart {
         kulturart = parts[parts.length-1];
     }
 
-    const taxierung = lookupTaxierung(kulturart)
+    const taxierung = lookupTaxierung(kulturart, gemeinde)
     if( taxierung == null ) {
         consola.warn('Keine Taxen-Kulturart für Kulturart '+kulturart+' gefunden');
         throw new Error('Keine Taxen-Kulturart für Kulturart '+kulturart+' gefunden')
