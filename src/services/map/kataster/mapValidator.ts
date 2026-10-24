@@ -254,7 +254,7 @@ function kulturartToTaxenKulturart(kulturart:string, gemeinde:gemeindeType.Gemei
     if( !kulturart ) {
         return null;
     }
-    if( kulturart.includes(' u. ') || kulturart.includes(' und ') || kulturart.includes(',') ) {
+    if( kulturart.includes(' u. ') || kulturart.includes(' und ') || kulturart.includes(' & ') ||kulturart.includes(',') ) {
         // not supported (yet)
         return null;
     }

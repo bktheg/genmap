@@ -5,6 +5,7 @@ import * as gemeindeType from '#kataster/gemeindeType'
 import * as unitConversion from '#kataster/unitConversion'
 import { lookupKartendarstellung, lookupDisplayLabel } from '#kataster/kulturartenReader';
 import { consola } from 'consola';
+import { splitKulturarten } from '#kataster/kulturartSplitter'
 import * as XslxUtils from '#utils/xslxUtils'
 
 export class Parzelle {
@@ -283,8 +284,7 @@ function readMoney(sheet:XLSX.WorkSheet, rowM:string, rowR:string, rowF:string, 
 }
 
 export function mapType(gemeinde:gemeindeType.GemeindeId, flur:number, art:string):AreaTyp[] {
-    art = art.split(" und ").join(" u. ");
-    const parts = art.toLowerCase().split(" u.");
+    const parts = splitKulturarten(art);
     const result:Set<AreaTyp> = new Set();
 
     for( const part of parts ) {
