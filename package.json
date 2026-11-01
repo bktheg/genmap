@@ -12,7 +12,8 @@
     "start": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/cli.ts",
     "start:windows": "nodemon --watch 'src/**/*.ts' --exec \"npx ts-node\" src/cli.ts",
     "create": "npm run build && npm run test",
-    "build": "tsc -p ."
+    "build": "tsc -p .",
+    "preview": "node ./dist/cli.js preview"
   },
   "dependencies": {
     "@types/base-64": "^0.1.3",
