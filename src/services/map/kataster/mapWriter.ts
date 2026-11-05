@@ -5,6 +5,8 @@ import * as gemeindeType from '#kataster/gemeindeType'
 import { consola } from 'consola';
 import { createRawDataReader, Strasse, Bezeichnung, GeoJsonGeometry } from '#kataster/rawDataReader';
 
+import { CalculatedBuilding } from '#kataster/calculatedBuilding';
+
 const SRS = "7416";
 
 export class CalculatedArea {
@@ -31,20 +33,7 @@ export class CalculatedFlur {
 }
 
 
-export class CalculatedBuilding {
-    points:PointDescriptor[];
-    flur:number;
-    parzelle:string;
-    validFrom:Zeit;
-    validTill:Zeit;
-    fortschreibung:string
-
-    constructor(public gemeinde:gemeindeType.GemeindeId, flur:number, parzelle:string, public bezeichnung:string, public hnr:string, public typ:string) {
-        this.flur = flur;
-        this.parzelle = parzelle;
-        this.points = [];
-    }
-}
+export { CalculatedBuilding };
 
 export async function cleanUpGemeinde(gemeinde:gemeindeType.GemeindeId) {
     await cleanupFlure();
