@@ -184,8 +184,8 @@ export async function cleanUp() {
             nr VARCHAR(30),
             yearFrom SMALLINT,
             yearTill SMALLINT,
-            bezeichnung VARCHAR(32),
-            typ VARCHAR(32),
+            bezeichnung VARCHAR(64),
+            typ VARCHAR(64),
             hnr VARCHAR(16),
             fortschreibung VARCHAR(255)
           );`
