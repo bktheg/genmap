@@ -15,6 +15,12 @@ type InfoExport = {
     a:any // attributes
 }
 
+function writeMetadataJson(fileName:string, data:any) {
+    const dir = katasterPath+"/out_metadata";
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(dir+"/"+fileName, JSON.stringify(data, (k, v) => v != null ? v : undefined, 0));
+}
+
 function roundCoords(coords:number[]) {
     return coords.map(c => Math.round(c*10000)/10000);
 }
@@ -76,7 +82,7 @@ export async function writeMetadataAdminJson(kreise:gemeindeType.Kreis[], bgmstr
         k: kreiseExport
     } as AdminExport;
 
-    fs.writeFileSync(katasterPath+"/out_metadata/admin.json", JSON.stringify(adminExport, (k, v) => v != null ? v : undefined, 0));
+    writeMetadataJson("admin.json", adminExport);
 }
 
 export async function generateBuergermeistereiJsonExport(buergermeistereien:gemeindeType.Buergermeisterei[], infos:infoReader.Info[]):Promise<BuergermeistereiExport[]> {
@@ -274,7 +280,7 @@ export async function writeMetadataBezeichnungenJson(bezeichnungen:mapReader.Bez
         })
     }
 
-    fs.writeFileSync(katasterPath+"/out_metadata/bezeichnungen.json", JSON.stringify(out, (k, v) => v != null ? v : undefined, 0));
+    writeMetadataJson("bezeichnungen.json", out);
 }
 
 type EigentuemerExport = {
@@ -294,7 +300,7 @@ export async function writeMutterrollenEigentuemer(eigentuemer:mutterrolle.Mutte
             n:e.name
         }) as EigentuemerExport;
     }
-    fs.writeFileSync(katasterPath+"/out_metadata/eigentuemer.json", JSON.stringify(out, (k, v) => v != null ? v : undefined, 0));
+    writeMetadataJson("eigentuemer.json", out);
 }
 
 type MutterrolleRowExport = {
@@ -325,7 +331,7 @@ export async function writeMutterrollen(gemeinde:gemeindeType.GemeindeId, mutter
             r:mappedRows
         } as MutterrolleExport;
     }
-    fs.writeFileSync(katasterPath+"/out_metadata/mutterrollen_"+gemeinde.getId()+".json", JSON.stringify(out, (k, v) => v != null ? v : undefined, 0));
+    writeMetadataJson("mutterrollen_"+gemeinde.getId()+".json", out);
 }
 
 type ParzelleBuildingExport = {
@@ -389,7 +395,7 @@ export async function writeMetadataParzellen(gemeinde:gemeindeType.GemeindeId, f
             })
         } as ParzelleExport);
     }
-    fs.writeFileSync(katasterPath+"/out_metadata/parzellen_"+gemeinde.getId()+"_"+flur+".json", JSON.stringify(out, (k, v) => v != null ? v : undefined, 0));
+    writeMetadataJson("parzellen_"+gemeinde.getId()+"_"+flur+".json", out);
 }
 
 function mapInfo(gemeinde:gemeindeType.GemeindeId, info:infoReader.Info):InfoExport {
@@ -547,7 +553,7 @@ export async function writeMetadataHaeuserbuch(gemeinde:gemeindeType.GemeindeId,
         })
     }
    
-    fs.writeFileSync(katasterPath+"/out_metadata/haeuserbuch_"+gemeinde.getId()+".json", JSON.stringify(out, (k, v) => v != null ? v : undefined, 0));
+    writeMetadataJson("haeuserbuch_"+gemeinde.getId()+".json", out);
 }
 
 function mapHaeuserbuchInfo(hb:haeuserbuchReader.Haeuserbuch, info:haeuserbuchReader.BuildingInfo):HaeuserbuchInfoExport {
@@ -586,5 +592,5 @@ export async function writeMetadataAllParzellen(parzellen:mapReader.Parzelle[]) 
             p:roundCoords(e.location)
         } as AllParzellenExport);
     }
-    fs.writeFileSync(katasterPath+"/out_metadata/allparzellen.json", JSON.stringify(out, (k, v) => v != null ? v : undefined, 0));
+    writeMetadataJson("allparzellen.json", out);
 }
