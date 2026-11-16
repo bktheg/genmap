@@ -181,7 +181,7 @@ export async function generateMetadata() {
             await metadataJsonWriter.writeMutterrollen(gemeinde, mutterrollen);
         }
         else if( gemeinde.isPartsDone() ) {
-            throw "Mutterrolle für Gemeinde "+gemeinde.getId()+" erwartet";
+            consola.warn("Mutterrolle für Gemeinde "+gemeinde.getId()+" erwartet, aber keine Daten vorhanden. Überspringe.");
         }
     }
 
@@ -215,7 +215,7 @@ export async function generateMetadata() {
 function checkEigentuemerComplete(eigentuemer:mutterrolle.Mutterrolle[]):void {
     for( const gemeinde of gemeindeType.GEMEINDEN ) {
         if( gemeinde.isPartsDone() && !eigentuemer.find(e => e.gemeinde.getId() == gemeinde.getId())) {
-            throw "Eigentuemer in Gemeinde "+gemeinde.getId()+" erwartet";
+            consola.warn("Eigentuemer in Gemeinde "+gemeinde.getId()+" erwartet, aber keine Daten vorhanden. Überspringe.");
         }
     }
 }
